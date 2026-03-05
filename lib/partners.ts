@@ -67,17 +67,17 @@ export async function redeemInviteCode(
   // Mark code as used
   await updateDoc(codeRef, { used: true, usedBy: partnerUid, usedAt: now });
 
-  // Add partner to patient's user doc
-  await updateDoc(doc(db, 'users', patientUid), {
+  // Add partner to patient's user doc (merge in case doc doesn't exist yet)
+  await setDoc(doc(db, 'users', patientUid), {
     linkedPartners: arrayUnion(partnerUid),
     role: 'member',
-  });
+  }, { merge: true });
 
-  // Update partner's user doc
-  await updateDoc(doc(db, 'users', partnerUid), {
+  // Update partner's user doc (merge in case doc doesn't exist yet)
+  await setDoc(doc(db, 'users', partnerUid), {
     linkedPatient: patientUid,
     role: 'partner',
-  });
+  }, { merge: true });
 
   return { success: true, patientUid };
 }
