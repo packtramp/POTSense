@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,13 +21,14 @@ function getShareUrl(refCode: string | null) {
   return refCode ? `https://www.potsense.org/?ref=${refCode}` : 'https://www.potsense.org';
 }
 
-function getSocialLinks(refCode: string | null) {
+function getAllShareLinks(refCode: string | null) {
   const shareText = getShareText(refCode);
   const shareUrl = getShareUrl(refCode);
 
   return [
     {
       key: 'facebook',
+      label: 'Facebook',
       icon: 'logo-facebook' as const,
       color: '#1877F2',
       onPress: async () => {
@@ -41,13 +42,29 @@ function getSocialLinks(refCode: string | null) {
       },
     },
     {
+      key: 'sms',
+      label: 'Text',
+      icon: 'chatbubble-outline' as const,
+      color: '#448AFF',
+      onPress: () => Linking.openURL(`sms:?body=${encodeURIComponent(shareText)}`),
+    },
+    {
+      key: 'mail',
+      label: 'Email',
+      icon: 'mail' as const,
+      color: '#4FC3F7',
+      onPress: () => Linking.openURL(`mailto:?subject=${encodeURIComponent('Check out POTSense!')}&body=${encodeURIComponent(shareText)}`),
+    },
+    {
       key: 'x',
+      label: 'X / Twitter',
       icon: 'logo-twitter' as const,
       color: '#fff',
       onPress: () => Linking.openURL(`https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`),
     },
     {
       key: 'instagram',
+      label: 'Instagram',
       icon: 'logo-instagram' as const,
       color: '#E4405F',
       onPress: async () => {
@@ -62,24 +79,14 @@ function getSocialLinks(refCode: string | null) {
     },
     {
       key: 'reddit',
+      label: 'Reddit',
       icon: 'logo-reddit' as const,
       color: '#FF4500',
       onPress: () => Linking.openURL(`https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`),
     },
     {
-      key: 'sms',
-      icon: 'chatbubble-outline' as const,
-      color: '#448AFF',
-      onPress: () => Linking.openURL(`sms:?body=${encodeURIComponent(shareText)}`),
-    },
-    {
-      key: 'mail',
-      icon: 'mail' as const,
-      color: '#4FC3F7',
-      onPress: () => Linking.openURL(`mailto:?subject=${encodeURIComponent('Check out POTSense!')}&body=${encodeURIComponent(shareText)}`),
-    },
-    {
       key: 'copy',
+      label: 'Copy Link',
       icon: 'copy' as const,
       color: '#A0A0A0',
       onPress: async () => {
@@ -93,6 +100,8 @@ function getSocialLinks(refCode: string | null) {
     },
   ];
 }
+
+const PRIMARY_SHARE_KEYS = ['facebook', 'sms', 'mail'];
 
 const DAILY_TRACKERS = [
   { key: 'water', emoji: '💧', label: 'Water', levels: ['--', 'Low', 'Med', 'High'] },
@@ -116,6 +125,7 @@ export default function HomeScreen() {
   const [lastEpisode, setLastEpisode] = useState<string>('--');
   const [trackerValues, setTrackerValues] = useState<Record<string, string>>({});
   const [refCode, setRefCode] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Fetch weather + referral code on mount
   useEffect(() => {
@@ -254,16 +264,46 @@ export default function HomeScreen() {
       {/* Share / Community */}
       <Text style={styles.shareLabel}>Share POTSense</Text>
       <View style={styles.socialRow}>
-        {getSocialLinks(refCode).map((s) => (
-          <Pressable
-            key={s.key}
-            style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
-            onPress={s.onPress}
-          >
-            <Ionicons name={s.icon} size={22} color={s.color} />
-          </Pressable>
-        ))}
+        {getAllShareLinks(refCode)
+          .filter((s) => PRIMARY_SHARE_KEYS.includes(s.key))
+          .map((s) => (
+            <Pressable
+              key={s.key}
+              style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
+              onPress={s.onPress}
+            >
+              <Ionicons name={s.icon} size={22} color={s.color} />
+            </Pressable>
+          ))}
+        <Pressable
+          style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
+          onPress={() => setShareOpen(true)}
+        >
+          <Ionicons name="share-social-outline" size={22} color={Colors.textSecondary} />
+        </Pressable>
       </View>
+
+      {/* Share Modal */}
+      <Modal visible={shareOpen} transparent animationType="fade" onRequestClose={() => setShareOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShareOpen(false)}>
+          <View style={styles.shareSheet}>
+            <Text style={styles.shareSheetTitle}>Share via</Text>
+            {getAllShareLinks(refCode).map((s) => (
+              <Pressable
+                key={s.key}
+                style={({ pressed }) => [styles.shareSheetRow, pressed && { backgroundColor: Colors.border }]}
+                onPress={() => { setShareOpen(false); s.onPress(); }}
+              >
+                <Ionicons name={s.icon} size={22} color={s.color} />
+                <Text style={styles.shareSheetLabel}>{s.label}</Text>
+              </Pressable>
+            ))}
+            <Pressable style={styles.shareSheetCancel} onPress={() => setShareOpen(false)}>
+              <Text style={styles.shareSheetCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Daily Trackers */}
       <Text style={styles.sectionTitle}>Today's Tracking</Text>
@@ -393,4 +433,41 @@ const styles = StyleSheet.create({
   statValue: { color: Colors.text, fontSize: 22, fontWeight: '700' },
   statLabel: { color: Colors.textSecondary, fontSize: 12, marginTop: 4 },
   statDivider: { width: 1, height: 30, backgroundColor: Colors.border },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  shareSheet: {
+    backgroundColor: Colors.card,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    paddingBottom: 32,
+  },
+  shareSheetTitle: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  shareSheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  shareSheetLabel: { color: Colors.text, fontSize: 15 },
+  shareSheetCancel: {
+    marginTop: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  shareSheetCancelText: { color: Colors.textMuted, fontSize: 15 },
 });
