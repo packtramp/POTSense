@@ -79,7 +79,7 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
 
   // Mental
   { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', levels: ['None', 'Mild', 'Moderate', 'Bad'] },
-  { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental' },
+  { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental', levels: ['None', 'Mild', 'Moderate', 'High'] },
 
   // Lifestyle
   { id: 'screen_time', label: 'Screen Time', emoji: '📱', category: 'lifestyle' },
@@ -101,7 +101,7 @@ export const QUANTITY_PICKERS: QuantityPicker[] = [
   { id: 'water', label: 'Water (cups)', emoji: '💧', category: 'hydration', options: ['0', '1-2', '3-4', '5-6', '7+'] },
   { id: 'electrolytes', label: 'Electrolytes', emoji: '⚡', category: 'hydration', options: ['None', 'LMNT', 'Liquid IV', 'Nuun', 'Other'] },
   { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
-  { id: 'stress_level', label: 'Stress Level', emoji: '😰', category: 'mental', options: ['A little', 'Moderate', 'Very'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'What\'s causing stress?' },
+  { id: 'stress_notes', label: 'What\'s Causing Stress?', emoji: '😰', category: 'mental', options: ['Work', 'Health', 'Family', 'Other'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'Details...' },
 
   // ---- Conditional (triggered by Group 1 toggles) ----
   { id: 'sleep_hours', label: 'How Many Hours?', emoji: '🕐', category: 'sleep', options: ['< 4 hrs', '4-5 hrs', '6-7 hrs'], conditional: 'bad_sleep' },
