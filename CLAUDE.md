@@ -43,6 +43,7 @@ POTS episode tracker with auto barometric pressure capture, Tinder-style swipe q
 | `docs/FIRESTORE-MODEL.md` | Document schemas, security rules, indexes, cost estimation |
 | `docs/PREMIUM-LOGIC.md` | RevenueCat setup, feature gating matrix, paywall triggers |
 | `docs/NOTIFICATIONS.md` | Push/email/SMS setup, cron jobs, notification types |
+| `docs/DEPLOY-CONFIG.md` | **READ BEFORE EVERY PUSH.** Vercel, GitHub, Firebase, troubleshooting |
 | `docs/SESSION-NOTES.md` | Session work log |
 
 ## Build Phases

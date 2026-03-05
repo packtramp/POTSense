@@ -33,7 +33,15 @@ const SOCIAL_LINKS = [
     key: 'facebook',
     icon: 'logo-facebook' as const,
     color: '#1877F2',
-    onPress: () => Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&hashtag=${encodeURIComponent('#POTS #Dysautonomia')}`),
+    onPress: async () => {
+      try { await Clipboard.setStringAsync(SHARE_TEXT); } catch {}
+      if (Platform.OS === 'web') {
+        window.alert('Share text copied! Paste it in your Facebook post.');
+      } else {
+        Alert.alert('Copied!', 'Share text copied! Paste it in your Facebook post.');
+      }
+      Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`);
+    },
   },
   {
     key: 'x',
