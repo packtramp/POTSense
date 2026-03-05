@@ -10,7 +10,7 @@ export type ToggleChip = {
   emoji: string;
   category: string;
   levels?: string[]; // If set, chip cycles through these values on tap instead of on/off
-  colorScale?: 'severity' | 'inverse' | 'neutral'; // severity = green→yellow→orange, inverse = orange→yellow→green, neutral = always green
+  colorScale?: 'severity' | 'inverse' | 'neutral' | 'blue'; // severity = green→yellow→orange, inverse = orange→yellow→green, neutral = always green, blue = brand blue throughout
 };
 
 export type QuantityPicker = {
@@ -47,7 +47,7 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep' },
 
   // Activity
-  { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'], colorScale: 'inverse' },
+  { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'], colorScale: 'blue' },
   { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity' },
   { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity' },
   { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity' },

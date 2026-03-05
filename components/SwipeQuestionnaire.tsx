@@ -201,6 +201,7 @@ export default function SwipeQuestionnaire({
                   const INVERSE_COLORS = [Colors.orange, Colors.orange, '#FFC107', Colors.green];
                   const cycleColor = isCycling && cycleIdx != null
                     ? (chip.colorScale === 'neutral' ? Colors.green
+                      : chip.colorScale === 'blue' ? Colors.primary
                       : chip.colorScale === 'inverse' ? INVERSE_COLORS[Math.min(cycleIdx, 3)]
                       : SEVERITY_COLORS[Math.min(cycleIdx, 3)])
                     : null;
