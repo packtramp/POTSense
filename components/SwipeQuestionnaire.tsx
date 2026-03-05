@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ToggleChip,
@@ -13,6 +13,7 @@ import { Colors } from '@/constants/Colors';
 export type QuestionnaireResult = {
   toggles: Record<string, boolean>;
   quantities: Record<string, string>;
+  notes: Record<string, string>; // text input values keyed by picker id
 };
 
 type Props = {
@@ -33,6 +34,7 @@ export default function SwipeQuestionnaire({
   const [phase, setPhase] = useState<'toggles' | 'quantities'>('toggles');
   const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set());
   const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const [textNotes, setTextNotes] = useState<Record<string, string>>({});
   const [quantityPage, setQuantityPage] = useState(0);
 
   const toggleChips = useMemo(
@@ -94,7 +96,7 @@ export default function SwipeQuestionnaire({
     for (const chip of toggleChips) {
       toggleResult[chip.id] = activeToggles.has(chip.id);
     }
-    onComplete({ toggles: toggleResult, quantities });
+    onComplete({ toggles: toggleResult, quantities, notes: textNotes });
   };
 
   const handleNextToQuantities = () => {
@@ -239,6 +241,18 @@ export default function SwipeQuestionnaire({
                 );
               })}
             </View>
+            {picker.hasTextInput && (
+              <TextInput
+                style={styles.pickerTextInput}
+                placeholder={picker.textPlaceholder || 'Add details...'}
+                placeholderTextColor={Colors.textMuted}
+                value={textNotes[picker.id] || ''}
+                onChangeText={(text) => setTextNotes((prev) => ({ ...prev, [picker.id]: text }))}
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
+              />
+            )}
           </View>
         ))}
       </View>
@@ -366,6 +380,17 @@ const styles = StyleSheet.create({
   },
   optionText: { color: Colors.textSecondary, fontSize: 14 },
   optionTextSelected: { color: Colors.primary, fontWeight: '700' },
+
+  pickerTextInput: {
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    padding: 12,
+    color: Colors.text,
+    fontSize: 14,
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
 
   // Bottom
   bottomBar: {

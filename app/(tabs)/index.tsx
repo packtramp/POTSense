@@ -81,7 +81,8 @@ export default function HomeScreen() {
           const diff = Date.now() - ts.getTime();
           const hours = Math.floor(diff / 3600000);
           const mins = Math.floor(diff / 60000);
-          if (mins < 60) setLastEpisode(`${mins}m ago`);
+          if (mins < 2) setLastEpisode('Just now');
+          else if (mins < 60) setLastEpisode(`${mins}m ago`);
           else if (hours < 24) setLastEpisode(`${hours}h ago`);
           else setLastEpisode(`${Math.floor(hours / 24)}d ago`);
         })

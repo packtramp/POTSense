@@ -18,6 +18,8 @@ export type QuantityPicker = {
   category: string;
   options: string[];
   conditional?: string; // Group 1 chip ID that must be ON for this to appear
+  hasTextInput?: boolean; // show a text input for notes/details
+  textPlaceholder?: string;
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -69,6 +71,9 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'gi_issues', label: 'GI Issues', emoji: '🤢', category: 'health' },
   { id: 'allergic_reaction', label: 'Allergic Reaction', emoji: '🤧', category: 'health' },
 
+  // Mental
+  { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental' },
+
   // Lifestyle
   { id: 'screen_time', label: 'Screen Time', emoji: '📱', category: 'lifestyle' },
   { id: 'tight_clothing', label: 'Tight Clothing', emoji: '👔', category: 'lifestyle' },
@@ -93,7 +98,7 @@ export const QUANTITY_PICKERS: QuantityPicker[] = [
   { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
   { id: 'sleep_hours', label: 'Sleep Hours', emoji: '🕐', category: 'sleep', options: ['< 4 hrs', '4-5 hrs', '6-7 hrs', '8+ hrs'] },
   { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', options: ['None', 'Light', 'Moderate', 'Intense'] },
-  { id: 'stress', label: 'Stress Level', emoji: '😰', category: 'mental', options: ['None', 'A little', 'Moderate', 'Very'] },
+  { id: 'stress_level', label: 'Stress Level', emoji: '😰', category: 'mental', options: ['A little', 'Moderate', 'Very'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'What\'s causing stress?' },
   { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', options: ['None', 'Mild', 'Moderate', 'Bad'] },
   { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', options: ['None', 'Mild', 'Moderate', 'Severe'] },
 

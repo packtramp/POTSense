@@ -86,6 +86,9 @@ export default function EpisodeModal() {
         for (const [key, val] of Object.entries(result.quantities)) {
           questionnaireMap[key] = val;
         }
+        for (const [key, val] of Object.entries(result.notes)) {
+          if (val.trim()) questionnaireMap[`${key}_note`] = val.trim();
+        }
       }
 
       await addDoc(collection(db, 'patients', user.uid, 'episodes'), {
