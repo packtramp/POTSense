@@ -43,10 +43,8 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet' },
 
   // Sleep
-  { id: 'sleep_hours', label: 'Sleep', emoji: '🕐', category: 'sleep', levels: ['< 4 hrs', '4-5 hrs', '6-7 hrs', '8+ hrs'], colorScale: 'inverse' },
-  { id: 'good_sleep', label: 'Good Sleep', emoji: '😴', category: 'sleep' },
+  { id: 'bad_sleep', label: 'Bad Sleep', emoji: '😴', category: 'sleep' },
   { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep' },
-  { id: 'head_elevated', label: 'Head Elevated', emoji: '🛏️', category: 'sleep' },
 
   // Activity
   { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'], colorScale: 'inverse' },
@@ -106,6 +104,8 @@ export const QUANTITY_PICKERS: QuantityPicker[] = [
   { id: 'stress_level', label: 'Stress Level', emoji: '😰', category: 'mental', options: ['A little', 'Moderate', 'Very'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'What\'s causing stress?' },
 
   // ---- Conditional (triggered by Group 1 toggles) ----
+  { id: 'sleep_hours', label: 'How Many Hours?', emoji: '🕐', category: 'sleep', options: ['< 4 hrs', '4-5 hrs', '6-7 hrs'], conditional: 'bad_sleep' },
+  { id: 'head_elevated', label: 'Head Elevated?', emoji: '🛏️', category: 'sleep', options: ['Yes', 'No'], conditional: 'bad_sleep' },
   { id: 'bath_type', label: 'Bath or Shower?', emoji: '🚿', category: 'activity', options: ['Bath', 'Shower'], conditional: 'bath' },
   { id: 'bath_temp', label: 'Water Temp', emoji: '🌡️', category: 'activity', options: ['Hot', 'Warm', 'Cool'], conditional: 'bath' },
   { id: 'period_day', label: 'Period Day', emoji: '🩸', category: 'health', options: ['Day 1-2', 'Day 3-4', 'Day 5+'], conditional: 'menstrual' },
