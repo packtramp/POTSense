@@ -1,0 +1,273 @@
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { collection, query, orderBy, limit, getDocs, where, Timestamp, doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { getCurrentUser } from '@/lib/auth';
+import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescription } from '@/lib/weather';
+import { Colors } from '@/constants/Colors';
+
+const DAILY_TRACKERS = [
+  { key: 'water', emoji: '💧', label: 'Water', levels: ['--', 'Low', 'Med', 'High'] },
+  { key: 'salt', emoji: '🧂', label: 'Salt', levels: ['--', 'Low', 'Med', 'High'] },
+  { key: 'sleep', emoji: '😴', label: 'Sleep', levels: ['--', 'Bad', 'OK', 'Good'] },
+  { key: 'meds', emoji: '💊', label: 'Meds', levels: ['--', 'No', 'Yes'] },
+  { key: 'exercise', emoji: '🏃', label: 'Exercise', levels: ['--', 'No', 'Light', 'Hard'] },
+];
+
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export default function HomeScreen() {
+  const router = useRouter();
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [todayCount, setTodayCount] = useState(0);
+  const [weekCount, setWeekCount] = useState(0);
+  const [lastEpisode, setLastEpisode] = useState<string>('--');
+  const [trackerValues, setTrackerValues] = useState<Record<string, string>>({});
+
+  // Fetch weather on mount
+  useEffect(() => {
+    getWeatherForCurrentLocation().then((w) => {
+      setWeather(w);
+      setWeatherLoading(false);
+    });
+  }, []);
+
+  // Refresh episode stats + daily log when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      const user = getCurrentUser();
+      if (!user) return;
+
+      const episodesRef = collection(db, 'patients', user.uid, 'episodes');
+
+      // Get today's count
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
+      // Get week count
+      const startOfWeek = new Date();
+      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      const weekTs = Timestamp.fromDate(startOfWeek);
+
+      // Fetch all episodes this week (covers both today + week counts)
+      getDocs(query(episodesRef, where('timestamp', '>=', weekTs), orderBy('timestamp', 'desc')))
+        .then((snap) => {
+          setWeekCount(snap.size);
+          const todayEps = snap.docs.filter((d) => {
+            const ts = d.data().timestamp?.toDate?.();
+            return ts && ts >= startOfToday;
+          });
+          setTodayCount(todayEps.length);
+        })
+        .catch(() => {});
+
+      // Get last episode
+      getDocs(query(episodesRef, orderBy('timestamp', 'desc'), limit(1)))
+        .then((snap) => {
+          if (snap.empty) {
+            setLastEpisode('--');
+            return;
+          }
+          const ts = snap.docs[0].data().timestamp?.toDate?.();
+          if (!ts) { setLastEpisode('--'); return; }
+          const diff = Date.now() - ts.getTime();
+          const hours = Math.floor(diff / 3600000);
+          const mins = Math.floor(diff / 60000);
+          if (mins < 60) setLastEpisode(`${mins}m ago`);
+          else if (hours < 24) setLastEpisode(`${hours}h ago`);
+          else setLastEpisode(`${Math.floor(hours / 24)}d ago`);
+        })
+        .catch(() => {});
+
+      // Load today's daily log
+      const todayKey = getTodayKey();
+      getDoc(doc(db, 'patients', user.uid, 'dailyLogs', todayKey))
+        .then((snap) => {
+          if (snap.exists()) {
+            setTrackerValues(snap.data().trackers || {});
+          } else {
+            setTrackerValues({});
+          }
+        })
+        .catch(() => {});
+    }, [])
+  );
+
+  const cycleTracker = (tracker: typeof DAILY_TRACKERS[0]) => {
+    const currentVal = trackerValues[tracker.key] || '--';
+    const currentIdx = tracker.levels.indexOf(currentVal);
+    const nextIdx = (currentIdx + 1) % tracker.levels.length;
+    const nextVal = tracker.levels[nextIdx];
+
+    const newValues = { ...trackerValues, [tracker.key]: nextVal };
+    setTrackerValues(newValues);
+
+    // Save to Firestore
+    const user = getCurrentUser();
+    if (!user) return;
+    const todayKey = getTodayKey();
+    setDoc(
+      doc(db, 'patients', user.uid, 'dailyLogs', todayKey),
+      { trackers: newValues, updatedAt: new Date().toISOString() },
+      { merge: true }
+    ).catch(() => {});
+  };
+
+  const getTrackerColor = (value: string) => {
+    if (value === '--') return Colors.textMuted;
+    if (value === 'Low' || value === 'Bad' || value === 'No') return Colors.orange;
+    if (value === 'High' || value === 'Good' || value === 'Yes' || value === 'Hard') return Colors.green;
+    return Colors.primary;
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Weather Card */}
+      <View style={styles.weatherCard}>
+        <Text style={styles.weatherTitle}>🌡️ Current Conditions</Text>
+        {weatherLoading ? (
+          <Text style={styles.weatherPressure}>Loading...</Text>
+        ) : weather ? (
+          <>
+            <Text style={styles.weatherPressure}>
+              {weather.surfacePressureInHg} inHg {trendArrow(weather.pressureTrend)}
+            </Text>
+            <Text style={styles.weatherDetail}>
+              {weather.temperatureF}°F   {weather.humidity}% humidity
+            </Text>
+            <Text style={styles.weatherDetail}>
+              {weatherDescription(weather.weatherCode)}   Wind: {Math.round(weather.windSpeed)} km/h
+            </Text>
+            {weather.pressureTrend === 'falling' && weather.pressureChange3h < -3 && (
+              <Text style={styles.weatherWarning}>
+                ⚠️ Pressure falling fast ({weather.pressureChange3h} hPa in 3h)
+              </Text>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.weatherPressure}>-- inHg</Text>
+            <Text style={styles.weatherNote}>Allow location access for weather data</Text>
+          </>
+        )}
+      </View>
+
+      {/* Daily Trackers */}
+      <Text style={styles.sectionTitle}>Today's Tracking</Text>
+      <View style={styles.trackerRow}>
+        {DAILY_TRACKERS.map((t) => {
+          const val = trackerValues[t.key] || '--';
+          const color = getTrackerColor(val);
+          return (
+            <Pressable
+              key={t.key}
+              style={[styles.trackerItem, val !== '--' && { borderColor: color }]}
+              onPress={() => cycleTracker(t)}
+            >
+              <Text style={styles.trackerEmoji}>{t.emoji}</Text>
+              <Text style={styles.trackerLabel}>{t.label}</Text>
+              <Text style={[styles.trackerValue, { color }]}>{val}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* LOG EPISODE Button */}
+      <Pressable
+        style={({ pressed }) => [styles.logButton, pressed && styles.logButtonPressed]}
+        onPress={() => router.push('/episode-modal')}
+      >
+        <Ionicons name="add-circle" size={28} color={Colors.text} />
+        <Text style={styles.logButtonText}>LOG EPISODE</Text>
+      </Pressable>
+
+      {/* Quick Stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{todayCount}</Text>
+          <Text style={styles.statLabel}>Today</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{weekCount}</Text>
+          <Text style={styles.statLabel}>This Week</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{lastEpisode}</Text>
+          <Text style={styles.statLabel}>Last Episode</Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background },
+  content: { padding: 16, paddingBottom: 80 },
+
+  weatherCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  weatherTitle: { color: Colors.textSecondary, fontSize: 13, marginBottom: 8 },
+  weatherPressure: { color: Colors.text, fontSize: 28, fontWeight: '700' },
+  weatherDetail: { color: Colors.textSecondary, fontSize: 15, marginTop: 4 },
+  weatherNote: { color: Colors.textMuted, fontSize: 12, marginTop: 8, fontStyle: 'italic' },
+  weatherWarning: { color: Colors.orange, fontSize: 13, fontWeight: '600', marginTop: 8 },
+
+  sectionTitle: { color: Colors.text, fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  trackerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  trackerItem: {
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    padding: 10,
+    flex: 1,
+    marginHorizontal: 3,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  trackerEmoji: { fontSize: 24, marginBottom: 4 },
+  trackerLabel: { color: Colors.textSecondary, fontSize: 11 },
+  trackerValue: { color: Colors.textMuted, fontSize: 12, marginTop: 2, fontWeight: '600' },
+
+  logButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  logButtonPressed: { opacity: 0.85 },
+  logButtonText: { color: Colors.text, fontSize: 20, fontWeight: '700', letterSpacing: 1 },
+
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { color: Colors.text, fontSize: 22, fontWeight: '700' },
+  statLabel: { color: Colors.textSecondary, fontSize: 12, marginTop: 4 },
+  statDivider: { width: 1, height: 30, backgroundColor: Colors.border },
+});

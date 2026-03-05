@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Super admin helper
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'robdorsett@gmail.com';
+    }
+
+    // User profiles
+    match /users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow write: if request.auth != null && (request.auth.uid == uid || isAdmin());
+    }
+
+    // Episodes — member or linked partners can read/write
+    match /patients/{memberUid}/episodes/{episodeId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == memberUid ||
+        isMemberPartner(memberUid)
+      );
+      allow create, update: if request.auth != null && (
+        request.auth.uid == memberUid ||
+        isMemberPartner(memberUid)
+      );
+      allow delete: if request.auth != null && request.auth.uid == memberUid;
+    }
+
+    // Daily logs — member only writes, partners can read
+    match /patients/{memberUid}/dailyLogs/{date} {
+      allow read: if request.auth != null && (
+        request.auth.uid == memberUid ||
+        isMemberPartner(memberUid)
+      );
+      allow write: if request.auth != null && request.auth.uid == memberUid;
+    }
+
+    // Invite codes — anyone authed can read (to validate), member creates
+    match /inviteCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // Helper: check if current user is a linked partner of the member
+    function isMemberPartner(memberUid) {
+      return exists(/databases/$(database)/documents/users/$(memberUid))
+        && request.auth.uid in get(/databases/$(database)/documents/users/$(memberUid)).data.linkedPartners;
+    }
+  }
+}
