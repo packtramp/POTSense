@@ -59,7 +59,28 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="episode-detail"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
           name="questionnaire-settings"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="pdf-export"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="partner-settings"
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom',

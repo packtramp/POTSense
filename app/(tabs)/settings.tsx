@@ -42,7 +42,7 @@ function getSections(router: any): SettingsSection[] { return [
     title: 'ACCOUNT',
     rows: [
       { icon: 'person-outline', label: 'Profile', onPress: comingSoon },
-      { icon: 'people-outline', label: 'Partners', detail: 'Manage linked partners', premium: true, onPress: comingSoon },
+      { icon: 'people-outline', label: 'Partners', detail: 'Manage linked partners', premium: true, onPress: () => router.push('/partner-settings') },
       { icon: 'star-outline', label: 'Subscription', detail: 'Free Plan', onPress: comingSoon },
     ],
   },
@@ -65,7 +65,7 @@ function getSections(router: any): SettingsSection[] { return [
   {
     title: 'DATA',
     rows: [
-      { icon: 'document-text-outline', label: 'Export PDF Report', premium: true },
+      { icon: 'document-text-outline', label: 'Export PDF Report', onPress: () => router.push('/pdf-export') },
       { icon: 'download-outline', label: 'Export All Data (JSON)' },
       { icon: 'trash-outline', label: 'Delete Account' },
     ],

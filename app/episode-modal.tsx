@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
+import { getLinkedPatient } from '@/lib/partners';
 import { getWeatherForCurrentLocation, WeatherData } from '@/lib/weather';
 import { Colors } from '@/constants/Colors';
 import SwipeQuestionnaire, { QuestionnaireResult } from '@/components/SwipeQuestionnaire';
@@ -37,6 +38,7 @@ export default function EpisodeModal() {
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [disabledCategories, setDisabledCategories] = useState<string[]>([]);
   const [disabledCards, setDisabledCards] = useState<string[]>([]);
+  const [linkedPatientUid, setLinkedPatientUid] = useState<string | null>(null);
 
   // Auto-fetch weather + user question prefs when modal opens
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function EpisodeModal() {
       setWeatherLoading(false);
     });
 
-    // Load user's question preferences
+    // Load user's question preferences + check if partner
     const user = getCurrentUser();
     if (user) {
       getDoc(doc(db, 'users', user.uid)).then((snap) => {
@@ -56,6 +58,11 @@ export default function EpisodeModal() {
         if (data?.settings?.disabledCards) {
           setDisabledCards(data.settings.disabledCards);
         }
+      }).catch(() => {});
+
+      // Check if this user is a partner — episodes save to patient's collection
+      getLinkedPatient(user.uid).then((result) => {
+        if (result) setLinkedPatientUid(result.patientUid);
       }).catch(() => {});
     }
   }, []);
@@ -91,13 +98,17 @@ export default function EpisodeModal() {
         }
       }
 
-      await addDoc(collection(db, 'patients', user.uid, 'episodes'), {
+      // If user is a partner, save to the patient's collection
+      const targetUid = linkedPatientUid || user.uid;
+
+      await addDoc(collection(db, 'patients', targetUid, 'episodes'), {
         timestamp: serverTimestamp(),
         localTime: new Date().toISOString(),
         severity,
         symptoms: selectedSymptoms,
         notes: notes.trim() || null,
         loggedBy: user.uid,
+        loggedByEmail: user.email || null,
         questionnaire: questionnaireMap,
         weather: weather || null,
       });

@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
+import { Ionicons } from '@expo/vector-icons';
 import { trendArrow } from '@/lib/weather';
 import { Colors } from '@/constants/Colors';
 
@@ -20,6 +22,7 @@ type Episode = {
 };
 
 export default function LogScreen() {
+  const router = useRouter();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -109,12 +112,19 @@ export default function LogScreen() {
         <View>
           <Text style={styles.dateHeader}>{group.date}</Text>
           {group.episodes.map((ep) => (
-            <View key={ep.id} style={styles.episodeCard}>
+            <Pressable
+              key={ep.id}
+              style={({ pressed }) => [styles.episodeCard, pressed && { opacity: 0.7 }]}
+              onPress={() => router.push({ pathname: '/episode-detail', params: { id: ep.id } })}
+            >
               <View style={styles.episodeHeader}>
                 <Text style={styles.episodeTime}>{formatTime(ep.timestamp)}</Text>
-                <Text style={styles.episodeSeverity}>
-                  {SEVERITY_EMOJI[ep.severity]} Sev {ep.severity}
-                </Text>
+                <View style={styles.severityBadge}>
+                  <Text style={styles.episodeSeverity}>
+                    {SEVERITY_EMOJI[ep.severity]} Sev {ep.severity}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+                </View>
               </View>
               {ep.weather && (
                 <Text style={styles.episodeWeather}>
@@ -129,7 +139,7 @@ export default function LogScreen() {
               {ep.notes && (
                 <Text style={styles.episodeNotes}>"{ep.notes}"</Text>
               )}
-            </View>
+            </Pressable>
           ))}
         </View>
       )}
@@ -156,7 +166,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  episodeHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  episodeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  severityBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   episodeTime: { color: Colors.text, fontSize: 15, fontWeight: '600' },
   episodeSeverity: { color: Colors.textSecondary, fontSize: 14 },
   episodeWeather: { color: Colors.textMuted, fontSize: 13, marginBottom: 4 },
