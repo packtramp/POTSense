@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
 import Svg, { Path, Circle, Line, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Colors } from '@/constants/Colors';
 import type { HourlyPressure } from '@/lib/weather';
@@ -21,7 +21,10 @@ type Props = {
 };
 
 const SEVERITY_COLORS = ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#EF5350'];
-const PADDING = { top: 24, right: 16, bottom: 32, left: 52 };
+const PADDING = { top: 24, right: 16, bottom: 32, left: 0 };
+const Y_AXIS_WIDTH = 52;
+const PX_PER_DAY = 60; // pixels per day — controls scroll width
+const MIN_CHART_DAYS = 5; // minimum days to fill the viewport
 
 // Downsample hourly data for performance (keep every Nth point)
 function downsample(data: HourlyPressure[], maxPoints: number): HourlyPressure[] {
@@ -29,12 +32,11 @@ function downsample(data: HourlyPressure[], maxPoints: number): HourlyPressure[]
   const step = Math.ceil(data.length / maxPoints);
   const result: HourlyPressure[] = [];
   for (let i = 0; i < data.length; i += step) result.push(data[i]);
-  // Always include the last point
   if (result[result.length - 1] !== data[data.length - 1]) result.push(data[data.length - 1]);
   return result;
 }
 
-// Build smooth SVG path from points
+// Build smooth SVG path from points (Catmull-Rom spline)
 function buildPath(pts: { x: number; y: number }[]): string {
   if (pts.length < 2) return '';
   let path = `M ${pts[0].x} ${pts[0].y}`;
@@ -52,11 +54,50 @@ function buildPath(pts: { x: number; y: number }[]): string {
   return path;
 }
 
+// Get midnight timestamps for day separator lines
+function getMidnights(minT: number, maxT: number): Date[] {
+  const midnights: Date[] = [];
+  const start = new Date(minT);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() + 1); // start from next midnight after minT
+  while (start.getTime() <= maxT) {
+    midnights.push(new Date(start));
+    start.setDate(start.getDate() + 1);
+  }
+  return midnights;
+}
+
 export default function PressureChart({ hourlyData, episodes, width, height = 260 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const hasHourly = hourlyData.length >= 2;
   const hasEpisodes = episodes.length >= 1;
+
+  // Determine time range
+  const allTimes = hasHourly
+    ? hourlyData.map((d) => d.timestamp.getTime())
+    : hasEpisodes ? episodes.map((d) => d.timestamp.getTime()) : [];
+
+  const minT = allTimes.length > 0 ? Math.min(...allTimes) : 0;
+  const maxT = allTimes.length > 0 ? Math.max(...allTimes) : 0;
+  const tRange = maxT - minT || 1;
+  const totalDays = Math.max(tRange / 86400000, MIN_CHART_DAYS);
+
+  // Available width for the chart area (minus the fixed Y-axis)
+  const viewportW = width - Y_AXIS_WIDTH;
+  // Chart canvas width: at least the viewport, or wider if many days
+  const chartCanvasW = Math.max(viewportW, Math.ceil(totalDays * PX_PER_DAY));
+  const isScrollable = chartCanvasW > viewportW;
+
+  // Scroll to right (most recent) on mount
+  useEffect(() => {
+    if (isScrollable && scrollRef.current) {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: false });
+      }, 50);
+    }
+  }, [isScrollable, chartCanvasW]);
 
   if (!hasHourly && !hasEpisodes) {
     return (
@@ -66,18 +107,10 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
     );
   }
 
-  const chartW = width - PADDING.left - PADDING.right;
   const chartH = height - PADDING.top - PADDING.bottom;
+  const svgWidth = chartCanvasW + PADDING.right;
 
-  // Determine time range from hourly data (or episodes as fallback)
-  const allTimes = hasHourly
-    ? hourlyData.map((d) => d.timestamp.getTime())
-    : episodes.map((d) => d.timestamp.getTime());
-  const minT = Math.min(...allTimes);
-  const maxT = Math.max(...allTimes);
-  const tRange = maxT - minT || 1;
-
-  // Determine pressure range from hourly data (wider = more context)
+  // Pressure range
   const allPressures = hasHourly
     ? hourlyData.map((d) => d.pressure)
     : episodes.map((d) => d.pressure);
@@ -85,11 +118,12 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
   const maxP = Math.ceil(Math.max(...allPressures) + 1);
   const pRange = maxP - minP || 1;
 
-  const scaleX = (t: number) => PADDING.left + ((t - minT) / tRange) * chartW;
+  const scaleX = (t: number) => ((t - minT) / tRange) * chartCanvasW;
   const scaleY = (p: number) => PADDING.top + chartH - ((p - minP) / pRange) * chartH;
 
-  // Downsample hourly for SVG performance (max ~200 points)
-  const sampled = downsample(hourlyData, 200);
+  // Downsample hourly for SVG performance
+  const maxPts = Math.max(200, Math.ceil(chartCanvasW / 3));
+  const sampled = downsample(hourlyData, maxPts);
   const hourlyPts = sampled.map((d) => ({ x: scaleX(d.timestamp.getTime()), y: scaleY(d.pressure) }));
   const hourlyPath = buildPath(hourlyPts);
   const areaPath = hourlyPath
@@ -102,15 +136,8 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
   const yTicks: number[] = [];
   for (let i = 0; i <= yTickCount; i++) yTicks.push(minP + i * yStep);
 
-  // X-axis labels (5 evenly spaced dates)
-  const xLabelCount = 5;
-  const xTimeStep = tRange / (xLabelCount - 1);
-  const xLabels: { time: number; label: string }[] = [];
-  for (let i = 0; i < xLabelCount; i++) {
-    const t = minT + i * xTimeStep;
-    const d = new Date(t);
-    xLabels.push({ time: t, label: `${d.getMonth() + 1}/${d.getDate()}` });
-  }
+  // Midnight day separator lines + date labels
+  const midnights = getMidnights(minT, maxT);
 
   const selectedPoint = episodes.find((d) => d.id === selectedId);
 
@@ -131,84 +158,109 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
         </View>
       )}
 
-      <Svg width={width} height={height}>
-        <Defs>
-          <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={Colors.primary} stopOpacity="0.15" />
-            <Stop offset="1" stopColor={Colors.primary} stopOpacity="0.01" />
-          </LinearGradient>
-        </Defs>
-
-        {/* Grid lines */}
-        {yTicks.map((tick) => (
-          <Line
-            key={`grid-${tick}`}
-            x1={PADDING.left} y1={scaleY(tick)}
-            x2={width - PADDING.right} y2={scaleY(tick)}
-            stroke={Colors.border} strokeWidth={0.5}
-          />
-        ))}
-
-        {/* Continuous pressure area fill */}
-        {areaPath ? <Path d={areaPath} fill="url(#areaGrad)" /> : null}
-
-        {/* Continuous pressure line */}
-        {hourlyPath ? (
-          <Path d={hourlyPath} stroke={Colors.primary} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round" opacity={0.7} />
-        ) : null}
-
-        {/* Episode dots — on top of the pressure line */}
-        {episodes.map((d) => {
-          const x = scaleX(d.timestamp.getTime());
-          // Place dot on the hourly pressure line (find nearest hourly value)
-          // or use episode's own pressure
-          const y = scaleY(d.pressure);
-          const color = SEVERITY_COLORS[d.severity - 1] || SEVERITY_COLORS[2];
-          const isSelected = d.id === selectedId;
-          return (
-            <Circle
-              key={d.id}
-              cx={x} cy={y}
-              r={isSelected ? 9 : 6}
-              fill={color}
-              stroke={isSelected ? Colors.text : Colors.background}
-              strokeWidth={isSelected ? 2.5 : 1.5}
-              onPress={() => setSelectedId(d.id === selectedId ? null : d.id)}
-            />
-          );
-        })}
-
-        {/* Y-axis labels */}
-        {yTicks.map((tick) => (
+      <View style={{ flexDirection: 'row' }}>
+        {/* Fixed Y-axis */}
+        <Svg width={Y_AXIS_WIDTH} height={height}>
+          {yTicks.map((tick) => (
+            <SvgText
+              key={`y-${tick}`}
+              x={Y_AXIS_WIDTH - 6} y={scaleY(tick) + 4}
+              fill={Colors.textMuted} fontSize={10} textAnchor="end"
+            >
+              {tick.toFixed(0)}
+            </SvgText>
+          ))}
           <SvgText
-            key={`y-${tick}`}
-            x={PADDING.left - 6} y={scaleY(tick) + 4}
-            fill={Colors.textMuted} fontSize={10} textAnchor="end"
+            x={12} y={PADDING.top + chartH / 2}
+            fill={Colors.textSecondary} fontSize={10} textAnchor="middle"
+            rotation="-90" origin={`12, ${PADDING.top + chartH / 2}`}
           >
-            {tick.toFixed(0)}
+            hPa
           </SvgText>
-        ))}
+        </Svg>
 
-        {/* X-axis date labels */}
-        {xLabels.map((l, i) => (
-          <SvgText
-            key={`x-${i}`}
-            x={scaleX(l.time)} y={height - 6}
-            fill={Colors.textMuted} fontSize={9} textAnchor="middle"
-          >
-            {l.label}
-          </SvgText>
-        ))}
-
-        {/* Y-axis label */}
-        <SvgText
-          x={12} y={PADDING.top + chartH / 2}
-          fill={Colors.textSecondary} fontSize={10} textAnchor="middle"
-          rotation="-90" origin={`12, ${PADDING.top + chartH / 2}`}
+        {/* Scrollable chart area */}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={isScrollable}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ width: svgWidth }}
         >
-          hPa
-        </SvgText>
-      </Svg>
+          <Svg width={svgWidth} height={height}>
+            <Defs>
+              <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={Colors.primary} stopOpacity="0.15" />
+                <Stop offset="1" stopColor={Colors.primary} stopOpacity="0.01" />
+              </LinearGradient>
+            </Defs>
+
+            {/* Horizontal grid lines */}
+            {yTicks.map((tick) => (
+              <Line
+                key={`grid-${tick}`}
+                x1={0} y1={scaleY(tick)}
+                x2={svgWidth} y2={scaleY(tick)}
+                stroke={Colors.border} strokeWidth={0.5}
+              />
+            ))}
+
+            {/* Vertical day separator lines at each midnight */}
+            {midnights.map((m) => {
+              const x = scaleX(m.getTime());
+              const label = `${m.getMonth() + 1}/${m.getDate()}`;
+              return [
+                <Line
+                  key={`dayline-${m.getTime()}`}
+                  x1={x} y1={PADDING.top}
+                  x2={x} y2={PADDING.top + chartH}
+                  stroke={Colors.border} strokeWidth={0.8}
+                  strokeDasharray="4,4"
+                />,
+                <SvgText
+                  key={`daylabel-${m.getTime()}`}
+                  x={x} y={height - 6}
+                  fill={Colors.textMuted} fontSize={9} textAnchor="middle"
+                >
+                  {label}
+                </SvgText>,
+              ];
+            })}
+
+            {/* Continuous pressure area fill */}
+            {areaPath ? <Path d={areaPath} fill="url(#areaGrad)" /> : null}
+
+            {/* Continuous pressure line */}
+            {hourlyPath ? (
+              <Path d={hourlyPath} stroke={Colors.primary} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round" opacity={0.7} />
+            ) : null}
+
+            {/* Episode dots */}
+            {episodes.map((d) => {
+              const x = scaleX(d.timestamp.getTime());
+              const y = scaleY(d.pressure);
+              const color = SEVERITY_COLORS[d.severity - 1] || SEVERITY_COLORS[2];
+              const isSelected = d.id === selectedId;
+              return (
+                <Circle
+                  key={d.id}
+                  cx={x} cy={y}
+                  r={isSelected ? 9 : 6}
+                  fill={color}
+                  stroke={isSelected ? Colors.text : Colors.background}
+                  strokeWidth={isSelected ? 2.5 : 1.5}
+                  onPress={() => setSelectedId(d.id === selectedId ? null : d.id)}
+                />
+              );
+            })}
+          </Svg>
+        </ScrollView>
+      </View>
+
+      {/* Scroll hint */}
+      {isScrollable && (
+        <Text style={styles.scrollHint}>← Scroll to see full history →</Text>
+      )}
 
       {/* Legend */}
       <View style={styles.legend}>
@@ -245,6 +297,7 @@ const styles = StyleSheet.create({
   },
   tooltipText: { color: Colors.text, fontSize: 13, fontWeight: '600' },
   tooltipDate: { color: Colors.textSecondary, fontSize: 11, marginTop: 2 },
+  scrollHint: { color: Colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 2 },
   legend: { flexDirection: 'row', justifyContent: 'center', gap: 14, marginTop: 4 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
