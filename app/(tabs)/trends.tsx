@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { Colors } from '@/constants/Colors';
 import PressureChart, { PressurePoint } from '@/components/PressureChart';
+import { getCurrentLocation, fetchHistoricalPressure, HourlyPressure } from '@/lib/weather';
 
 type RangeKey = '7d' | '30d' | '90d' | 'all';
 const RANGES: { key: RangeKey; label: string; days: number }[] = [
@@ -46,6 +47,7 @@ export default function TrendsScreen() {
   const [episodes, setEpisodes] = useState<EpisodeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState(0);
+  const [hourlyPressure, setHourlyPressure] = useState<HourlyPressure[]>([]);
   const scrollRef = useRef<ScrollView>(null);
 
   const cardWidth = Math.min(screenW - 32, 600);
@@ -59,7 +61,8 @@ export default function TrendsScreen() {
       setLoading(true);
       const episodesRef = collection(db, 'patients', user.uid, 'episodes');
 
-      getDocs(query(episodesRef, orderBy('timestamp', 'desc')))
+      // Fetch episodes
+      const epPromise = getDocs(query(episodesRef, orderBy('timestamp', 'desc')))
         .then((snap) => {
           const eps: EpisodeData[] = snap.docs.map((d) => {
             const data = d.data();
@@ -73,8 +76,18 @@ export default function TrendsScreen() {
           });
           setEpisodes(eps);
         })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+        .catch(() => {});
+
+      // Fetch continuous hourly pressure from Open-Meteo (last 92 days)
+      const pressurePromise = getCurrentLocation()
+        .then((coords) => {
+          if (!coords) return;
+          return fetchHistoricalPressure(coords.latitude, coords.longitude, 92);
+        })
+        .then((data) => { if (data) setHourlyPressure(data); })
+        .catch(() => {});
+
+      Promise.all([epPromise, pressurePromise]).finally(() => setLoading(false));
     }, [])
   );
 
@@ -85,7 +98,7 @@ export default function TrendsScreen() {
   const filtered = range === 'all' ? episodes : episodes.filter((e) => e.timestamp >= cutoff);
 
   // Pressure chart data
-  const chartData: PressurePoint[] = filtered
+  const chartEpisodes: PressurePoint[] = filtered
     .filter((e) => e.weather?.surfacePressure)
     .map((e) => ({
       id: e.id,
@@ -95,6 +108,11 @@ export default function TrendsScreen() {
       severity: e.severity,
       pressureChange3h: e.weather!.pressureChange3h,
     }));
+
+  // Filter hourly pressure to match selected range
+  const filteredHourly = range === 'all'
+    ? hourlyPressure
+    : hourlyPressure.filter((h) => h.timestamp >= cutoff);
 
   // Stats
   const avgSeverity = filtered.length > 0
@@ -226,7 +244,7 @@ export default function TrendsScreen() {
           <Text style={styles.cardSubtitle}>
             Your barometric pressure when episodes occur
           </Text>
-          <PressureChart data={chartData} width={cardWidth - 32} />
+          <PressureChart hourlyData={filteredHourly} episodes={chartEpisodes} width={cardWidth - 32} />
           <View style={styles.pressureStats}>
             <View style={styles.pressureStat}>
               <Text style={[styles.pressureStatVal, { color: Colors.red }]}>📉 {pressureDropPct}%</Text>

@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useState } from 'react';
-import Svg, { Path, Circle, Line, Text as SvgText, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Colors } from '@/constants/Colors';
+import type { HourlyPressure } from '@/lib/weather';
 
 export type PressurePoint = {
   id: string;
@@ -13,105 +14,105 @@ export type PressurePoint = {
 };
 
 type Props = {
-  data: PressurePoint[];
+  hourlyData: HourlyPressure[];  // continuous background pressure line
+  episodes: PressurePoint[];      // episode dots overlaid
   width: number;
   height?: number;
-  onPointPress?: (point: PressurePoint) => void;
 };
 
 const SEVERITY_COLORS = ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#EF5350'];
-
 const PADDING = { top: 24, right: 16, bottom: 32, left: 52 };
 
-export default function PressureChart({ data, width, height = 240, onPointPress }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+// Downsample hourly data for performance (keep every Nth point)
+function downsample(data: HourlyPressure[], maxPoints: number): HourlyPressure[] {
+  if (data.length <= maxPoints) return data;
+  const step = Math.ceil(data.length / maxPoints);
+  const result: HourlyPressure[] = [];
+  for (let i = 0; i < data.length; i += step) result.push(data[i]);
+  // Always include the last point
+  if (result[result.length - 1] !== data[data.length - 1]) result.push(data[data.length - 1]);
+  return result;
+}
 
-  if (data.length < 2) {
-    return (
-      <View style={[styles.empty, { height: 120 }]}>
-        <Text style={styles.emptyText}>Need 2+ episodes with weather data</Text>
-      </View>
-    );
-  }
-
-  const sorted = [...data].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-  const chartW = width - PADDING.left - PADDING.right;
-  const chartH = height - PADDING.top - PADDING.bottom;
-
-  // Scale
-  const pressures = sorted.map((d) => d.pressure);
-  const minP = Math.floor(Math.min(...pressures) - 2);
-  const maxP = Math.ceil(Math.max(...pressures) + 2);
-  const pRange = maxP - minP || 1;
-
-  const minT = sorted[0].timestamp.getTime();
-  const maxT = sorted[sorted.length - 1].timestamp.getTime();
-  const tRange = maxT - minT || 1;
-
-  const scaleX = (t: number) => PADDING.left + ((t - minT) / tRange) * chartW;
-  const scaleY = (p: number) => PADDING.top + chartH - ((p - minP) / pRange) * chartH;
-
-  // Smooth curve using cubic bezier (catmull-rom to bezier)
-  const points = sorted.map((d) => ({
-    x: scaleX(d.timestamp.getTime()),
-    y: scaleY(d.pressure),
-  }));
-
-  let linePath = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[Math.max(0, i - 1)];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[Math.min(points.length - 1, i + 2)];
-
+// Build smooth SVG path from points
+function buildPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return '';
+  let path = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
     const cp1x = p1.x + (p2.x - p0.x) / 6;
     const cp1y = p1.y + (p2.y - p0.y) / 6;
     const cp2x = p2.x - (p3.x - p1.x) / 6;
     const cp2y = p2.y - (p3.y - p1.y) / 6;
+    path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return path;
+}
 
-    linePath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+export default function PressureChart({ hourlyData, episodes, width, height = 260 }: Props) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const hasHourly = hourlyData.length >= 2;
+  const hasEpisodes = episodes.length >= 1;
+
+  if (!hasHourly && !hasEpisodes) {
+    return (
+      <View style={[styles.empty, { height: 120 }]}>
+        <Text style={styles.emptyText}>No pressure data available yet</Text>
+      </View>
+    );
   }
 
-  // Area fill
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${PADDING.top + chartH} L ${points[0].x} ${PADDING.top + chartH} Z`;
+  const chartW = width - PADDING.left - PADDING.right;
+  const chartH = height - PADDING.top - PADDING.bottom;
+
+  // Determine time range from hourly data (or episodes as fallback)
+  const allTimes = hasHourly
+    ? hourlyData.map((d) => d.timestamp.getTime())
+    : episodes.map((d) => d.timestamp.getTime());
+  const minT = Math.min(...allTimes);
+  const maxT = Math.max(...allTimes);
+  const tRange = maxT - minT || 1;
+
+  // Determine pressure range from hourly data (wider = more context)
+  const allPressures = hasHourly
+    ? hourlyData.map((d) => d.pressure)
+    : episodes.map((d) => d.pressure);
+  const minP = Math.floor(Math.min(...allPressures) - 1);
+  const maxP = Math.ceil(Math.max(...allPressures) + 1);
+  const pRange = maxP - minP || 1;
+
+  const scaleX = (t: number) => PADDING.left + ((t - minT) / tRange) * chartW;
+  const scaleY = (p: number) => PADDING.top + chartH - ((p - minP) / pRange) * chartH;
+
+  // Downsample hourly for SVG performance (max ~200 points)
+  const sampled = downsample(hourlyData, 200);
+  const hourlyPts = sampled.map((d) => ({ x: scaleX(d.timestamp.getTime()), y: scaleY(d.pressure) }));
+  const hourlyPath = buildPath(hourlyPts);
+  const areaPath = hourlyPath
+    ? `${hourlyPath} L ${hourlyPts[hourlyPts.length - 1].x} ${PADDING.top + chartH} L ${hourlyPts[0].x} ${PADDING.top + chartH} Z`
+    : '';
 
   // Y-axis ticks
   const yTickCount = 4;
   const yStep = pRange / yTickCount;
   const yTicks: number[] = [];
-  for (let i = 0; i <= yTickCount; i++) {
-    yTicks.push(minP + i * yStep);
+  for (let i = 0; i <= yTickCount; i++) yTicks.push(minP + i * yStep);
+
+  // X-axis labels (5 evenly spaced dates)
+  const xLabelCount = 5;
+  const xTimeStep = tRange / (xLabelCount - 1);
+  const xLabels: { time: number; label: string }[] = [];
+  for (let i = 0; i < xLabelCount; i++) {
+    const t = minT + i * xTimeStep;
+    const d = new Date(t);
+    xLabels.push({ time: t, label: `${d.getMonth() + 1}/${d.getDate()}` });
   }
 
-  // X-axis labels (max 5, evenly spaced)
-  const xLabelCount = Math.min(sorted.length, 5);
-  const xStep = Math.max(1, Math.floor((sorted.length - 1) / (xLabelCount - 1)));
-  const xLabels: typeof sorted = [];
-  for (let i = 0; i < sorted.length; i += xStep) xLabels.push(sorted[i]);
-  if (xLabels[xLabels.length - 1]?.id !== sorted[sorted.length - 1].id) {
-    xLabels.push(sorted[sorted.length - 1]);
-  }
-
-  const selectedPoint = sorted.find((d) => d.id === selectedId);
-
-  const handlePress = (point: PressurePoint) => {
-    setSelectedId(point.id === selectedId ? null : point.id);
-    onPointPress?.(point);
-  };
-
-  // Color falling/rising segments
-  const getFallingSegments = () => {
-    const segments: { x: number; w: number }[] = [];
-    for (let i = 0; i < sorted.length; i++) {
-      if (sorted[i].pressureChange3h < -2) {
-        const x = scaleX(sorted[i].timestamp.getTime());
-        segments.push({ x: x - 12, w: 24 });
-      }
-    }
-    return segments;
-  };
-  const fallingSegments = getFallingSegments();
+  const selectedPoint = episodes.find((d) => d.id === selectedId);
 
   return (
     <View>
@@ -133,8 +134,8 @@ export default function PressureChart({ data, width, height = 240, onPointPress 
       <Svg width={width} height={height}>
         <Defs>
           <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={Colors.primary} stopOpacity="0.2" />
-            <Stop offset="1" stopColor={Colors.primary} stopOpacity="0.02" />
+            <Stop offset="0" stopColor={Colors.primary} stopOpacity="0.15" />
+            <Stop offset="1" stopColor={Colors.primary} stopOpacity="0.01" />
           </LinearGradient>
         </Defs>
 
@@ -142,50 +143,37 @@ export default function PressureChart({ data, width, height = 240, onPointPress 
         {yTicks.map((tick) => (
           <Line
             key={`grid-${tick}`}
-            x1={PADDING.left}
-            y1={scaleY(tick)}
-            x2={width - PADDING.right}
-            y2={scaleY(tick)}
-            stroke={Colors.border}
-            strokeWidth={0.5}
+            x1={PADDING.left} y1={scaleY(tick)}
+            x2={width - PADDING.right} y2={scaleY(tick)}
+            stroke={Colors.border} strokeWidth={0.5}
           />
         ))}
 
-        {/* Falling pressure zones (red tint) */}
-        {fallingSegments.map((seg, i) => (
-          <Rect
-            key={`fall-${i}`}
-            x={Math.max(PADDING.left, seg.x)}
-            y={PADDING.top}
-            width={seg.w}
-            height={chartH}
-            fill="rgba(239,83,80,0.08)"
-            rx={4}
-          />
-        ))}
+        {/* Continuous pressure area fill */}
+        {areaPath ? <Path d={areaPath} fill="url(#areaGrad)" /> : null}
 
-        {/* Area fill */}
-        <Path d={areaPath} fill="url(#areaGrad)" />
+        {/* Continuous pressure line */}
+        {hourlyPath ? (
+          <Path d={hourlyPath} stroke={Colors.primary} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round" opacity={0.7} />
+        ) : null}
 
-        {/* Pressure line (smooth) */}
-        <Path d={linePath} stroke={Colors.primary} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-
-        {/* Episode dots */}
-        {sorted.map((d) => {
+        {/* Episode dots — on top of the pressure line */}
+        {episodes.map((d) => {
           const x = scaleX(d.timestamp.getTime());
+          // Place dot on the hourly pressure line (find nearest hourly value)
+          // or use episode's own pressure
           const y = scaleY(d.pressure);
           const color = SEVERITY_COLORS[d.severity - 1] || SEVERITY_COLORS[2];
           const isSelected = d.id === selectedId;
           return (
             <Circle
               key={d.id}
-              cx={x}
-              cy={y}
+              cx={x} cy={y}
               r={isSelected ? 9 : 6}
               fill={color}
               stroke={isSelected ? Colors.text : Colors.background}
               strokeWidth={isSelected ? 2.5 : 1.5}
-              onPress={() => handlePress(d)}
+              onPress={() => setSelectedId(d.id === selectedId ? null : d.id)}
             />
           );
         })}
@@ -194,39 +182,29 @@ export default function PressureChart({ data, width, height = 240, onPointPress 
         {yTicks.map((tick) => (
           <SvgText
             key={`y-${tick}`}
-            x={PADDING.left - 6}
-            y={scaleY(tick) + 4}
-            fill={Colors.textMuted}
-            fontSize={10}
-            textAnchor="end"
+            x={PADDING.left - 6} y={scaleY(tick) + 4}
+            fill={Colors.textMuted} fontSize={10} textAnchor="end"
           >
             {tick.toFixed(0)}
           </SvgText>
         ))}
 
         {/* X-axis date labels */}
-        {xLabels.map((d) => (
+        {xLabels.map((l, i) => (
           <SvgText
-            key={`x-${d.id}`}
-            x={scaleX(d.timestamp.getTime())}
-            y={height - 6}
-            fill={Colors.textMuted}
-            fontSize={9}
-            textAnchor="middle"
+            key={`x-${i}`}
+            x={scaleX(l.time)} y={height - 6}
+            fill={Colors.textMuted} fontSize={9} textAnchor="middle"
           >
-            {`${d.timestamp.getMonth() + 1}/${d.timestamp.getDate()}`}
+            {l.label}
           </SvgText>
         ))}
 
         {/* Y-axis label */}
         <SvgText
-          x={12}
-          y={PADDING.top + chartH / 2}
-          fill={Colors.textSecondary}
-          fontSize={10}
-          textAnchor="middle"
-          rotation="-90"
-          origin={`12, ${PADDING.top + chartH / 2}`}
+          x={12} y={PADDING.top + chartH / 2}
+          fill={Colors.textSecondary} fontSize={10} textAnchor="middle"
+          rotation="-90" origin={`12, ${PADDING.top + chartH / 2}`}
         >
           hPa
         </SvgText>
@@ -234,6 +212,10 @@ export default function PressureChart({ data, width, height = 240, onPointPress 
 
       {/* Legend */}
       <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendLine, { backgroundColor: Colors.primary }]} />
+          <Text style={styles.legendText}>Pressure</Text>
+        </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: SEVERITY_COLORS[0] }]} />
           <Text style={styles.legendText}>Mild</Text>
@@ -246,10 +228,6 @@ export default function PressureChart({ data, width, height = 240, onPointPress 
           <View style={[styles.legendDot, { backgroundColor: SEVERITY_COLORS[4] }]} />
           <Text style={styles.legendText}>Severe</Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDash, { backgroundColor: 'rgba(239,83,80,0.3)' }]} />
-          <Text style={styles.legendText}>Dropping</Text>
-        </View>
       </View>
     </View>
   );
@@ -257,30 +235,19 @@ export default function PressureChart({ data, width, height = 240, onPointPress 
 
 const styles = StyleSheet.create({
   empty: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: Colors.surfaceLight, borderRadius: 8,
   },
   emptyText: { color: Colors.textMuted, fontSize: 13 },
   tooltip: {
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.surface, borderRadius: 8, padding: 10, marginBottom: 4,
+    borderWidth: 1, borderColor: Colors.border,
   },
   tooltipText: { color: Colors.text, fontSize: 13, fontWeight: '600' },
   tooltipDate: { color: Colors.textSecondary, fontSize: 11, marginTop: 2 },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginTop: 4,
-  },
+  legend: { flexDirection: 'row', justifyContent: 'center', gap: 14, marginTop: 4 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendDash: { width: 12, height: 8, borderRadius: 2 },
+  legendLine: { width: 14, height: 2, borderRadius: 1 },
   legendText: { color: Colors.textMuted, fontSize: 10 },
 });

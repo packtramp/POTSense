@@ -106,3 +106,47 @@ export function weatherDescription(code: number): string {
 export function trendArrow(trend: WeatherData['pressureTrend']): string {
   return trend === 'falling' ? '↓' : trend === 'rising' ? '↑' : '→';
 }
+
+// Historical hourly pressure for trends chart
+export type HourlyPressure = {
+  timestamp: Date;
+  pressure: number; // hPa
+};
+
+export async function fetchHistoricalPressure(
+  lat: number,
+  lon: number,
+  days: number = 30,
+): Promise<HourlyPressure[]> {
+  try {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+
+    // Open-Meteo archive API for dates older than 5 days, forecast API for recent
+    // Use forecast API with past_days for simplicity (supports up to 92 days back)
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=surface_pressure&past_days=${Math.min(days, 92)}&forecast_days=1&timezone=auto`;
+
+    const res = await fetch(url);
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const times: string[] = data.hourly?.time || [];
+    const pressures: (number | null)[] = data.hourly?.surface_pressure || [];
+
+    const result: HourlyPressure[] = [];
+    for (let i = 0; i < times.length; i++) {
+      if (pressures[i] != null) {
+        result.push({
+          timestamp: new Date(times[i]),
+          pressure: pressures[i]!,
+        });
+      }
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
