@@ -7,31 +7,70 @@ import { collection, query, orderBy, limit, getDocs, where, Timestamp, doc, getD
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescription } from '@/lib/weather';
-import { Linking } from 'react-native';
+import { Alert, Linking } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Colors } from '@/constants/Colors';
 
 const SHARE_TEXT = "Found this great POTS app to help track dysautonomia episodes and triggers! Check it out at www.POTSense.org";
 const SHARE_URL = 'https://www.potsense.org';
+
+async function handleInstagramShare() {
+  // Instagram doesn't support pre-filled text sharing from web.
+  // Copy share text to clipboard, then open Instagram so they can paste it.
+  try {
+    await Clipboard.setStringAsync(SHARE_TEXT);
+  } catch {}
+  if (Platform.OS === 'web') {
+    window.alert('Share text copied to clipboard! Opening Instagram — paste it in your post or story.');
+  } else {
+    Alert.alert('Copied!', 'Share text copied to clipboard. Opening Instagram — paste it in your post or story.');
+  }
+  Linking.openURL('https://www.instagram.com/');
+}
 
 const SOCIAL_LINKS = [
   {
     key: 'facebook',
     icon: 'logo-facebook' as const,
     color: '#1877F2',
-    getUrl: () => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`,
+    onPress: () => Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&hashtag=${encodeURIComponent('#POTS #Dysautonomia')}`),
+  },
+  {
+    key: 'x',
+    icon: 'logo-twitter' as const,
+    color: '#fff',
+    onPress: () => Linking.openURL(`https://x.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`),
   },
   {
     key: 'instagram',
     icon: 'logo-instagram' as const,
     color: '#E4405F',
-    // Instagram has no web share URL — open the site so they can copy/paste
-    getUrl: () => SHARE_URL,
+    onPress: handleInstagramShare,
   },
   {
     key: 'reddit',
     icon: 'logo-reddit' as const,
     color: '#FF4500',
-    getUrl: () => `https://www.reddit.com/submit?url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TEXT)}`,
+    onPress: () => Linking.openURL(`https://www.reddit.com/submit?url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TEXT)}`),
+  },
+  {
+    key: 'mail',
+    icon: 'mail' as const,
+    color: '#4FC3F7',
+    onPress: () => Linking.openURL(`mailto:?subject=${encodeURIComponent('Check out POTSense!')}&body=${encodeURIComponent(SHARE_TEXT)}`),
+  },
+  {
+    key: 'copy',
+    icon: 'copy' as const,
+    color: '#A0A0A0',
+    onPress: async () => {
+      try { await Clipboard.setStringAsync(SHARE_TEXT); } catch {}
+      if (Platform.OS === 'web') {
+        window.alert('Share text copied to clipboard!');
+      } else {
+        Alert.alert('Copied!', 'Share text copied to clipboard.');
+      }
+    },
   },
 ];
 
@@ -194,7 +233,7 @@ export default function HomeScreen() {
           <Pressable
             key={s.key}
             style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => Linking.openURL(s.getUrl())}
+            onPress={s.onPress}
           >
             <Ionicons name={s.icon} size={22} color={s.color} />
           </Pressable>
