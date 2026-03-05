@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ToggleChip,
   QuantityPicker,
   getFilteredToggles,
-  getFilteredPickers,
+  QUANTITY_PICKERS,
   CARD_CATEGORIES,
 } from '@/constants/swipeCards';
 import { Colors } from '@/constants/Colors';
@@ -24,36 +24,34 @@ type Props = {
   disabledCards?: string[];
 };
 
-const PICKERS_PER_PAGE = 4;
-
 export default function SwipeQuestionnaire({
   onComplete,
   onClose,
   disabledCategories = [],
   disabledCards = [],
 }: Props) {
-  const [phase, setPhase] = useState<'toggles' | 'quantities'>('toggles');
   const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set());
   const [cyclingValues, setCyclingValues] = useState<Record<string, number>>({}); // index into levels[]
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [textNotes, setTextNotes] = useState<Record<string, string>>({});
-  const [quantityPage, setQuantityPage] = useState(0);
+  const [popupChipId, setPopupChipId] = useState<string | null>(null); // which chip's follow-ups are showing
 
   const toggleChips = useMemo(
     () => getFilteredToggles(disabledCategories, disabledCards),
     [disabledCategories, disabledCards]
   );
 
-  const quantityPickers = useMemo(
-    () => getFilteredPickers(disabledCategories, disabledCards, activeToggles),
-    [disabledCategories, disabledCards, activeToggles]
-  );
-
-  const totalPages = Math.ceil(quantityPickers.length / PICKERS_PER_PAGE);
-  const currentPagePickers = quantityPickers.slice(
-    quantityPage * PICKERS_PER_PAGE,
-    (quantityPage + 1) * PICKERS_PER_PAGE
-  );
+  // Build lookup: chipId → its conditional pickers
+  const conditionalPickersMap = useMemo(() => {
+    const map = new Map<string, QuantityPicker[]>();
+    for (const p of QUANTITY_PICKERS) {
+      if (p.conditional) {
+        if (!map.has(p.conditional)) map.set(p.conditional, []);
+        map.get(p.conditional)!.push(p);
+      }
+    }
+    return map;
+  }, []);
 
   // Group toggles by category for display
   const togglesByCategory = useMemo(() => {
@@ -72,21 +70,21 @@ export default function SwipeQuestionnaire({
     return grouped;
   }, [toggleChips]);
 
+  // Get the pickers for the currently open popup
+  const popupPickers = popupChipId ? (conditionalPickersMap.get(popupChipId) || []) : [];
+
   const handleToggle = (chip: ToggleChip) => {
     if (chip.levels) {
       // Cycling chip: advance to next level, wrap to 0 (off)
       setCyclingValues((prev) => {
-        const currentIdx = prev[chip.id] ?? -1; // -1 = unset (show first level on first tap)
+        const currentIdx = prev[chip.id] ?? -1;
         const nextIdx = currentIdx + 1;
         if (nextIdx >= chip.levels!.length) {
-          // Wrapped past last level → reset to off
           const next = { ...prev };
           delete next[chip.id];
-          // Also remove from activeToggles
           setActiveToggles((at) => { const n = new Set(at); n.delete(chip.id); return n; });
           return next;
         }
-        // Set active once past index 0 (or always for non-"None"/"0" first levels)
         setActiveToggles((at) => {
           const n = new Set(at);
           const val = chip.levels![nextIdx];
@@ -98,18 +96,23 @@ export default function SwipeQuestionnaire({
       });
     } else {
       // Simple on/off toggle
+      const wasActive = activeToggles.has(chip.id);
       setActiveToggles((prev) => {
         const next = new Set(prev);
         if (next.has(chip.id)) next.delete(chip.id);
         else next.add(chip.id);
         return next;
       });
+
+      // If toggling ON and this chip has conditional follow-ups, show popup
+      if (!wasActive && conditionalPickersMap.has(chip.id)) {
+        setPopupChipId(chip.id);
+      }
     }
   };
 
   const handleQuantitySelect = (pickerId: string, value: string) => {
     setQuantities((prev) => {
-      // Toggle off if same value selected
       if (prev[pickerId] === value) {
         const next = { ...prev };
         delete next[pickerId];
@@ -126,7 +129,6 @@ export default function SwipeQuestionnaire({
       if (chip.levels && cyclingValues[chip.id] != null) {
         const val = chip.levels[cyclingValues[chip.id]];
         cyclingResult[chip.id] = val;
-        // Mark as "active" toggle if not the zero/none value
         toggleResult[chip.id] = val !== '0' && val !== 'None';
       } else {
         toggleResult[chip.id] = activeToggles.has(chip.id);
@@ -135,217 +137,172 @@ export default function SwipeQuestionnaire({
     onComplete({ toggles: toggleResult, quantities, notes: textNotes, cyclingValues: cyclingResult });
   };
 
-  const handleNextToQuantities = () => {
-    if (quantityPickers.length === 0) {
-      handleFinish();
-      return;
-    }
-    setQuantityPage(0);
-    setPhase('quantities');
-  };
-
-  const handleNextPage = () => {
-    if (quantityPage + 1 >= totalPages) {
-      handleFinish();
-    } else {
-      setQuantityPage(quantityPage + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (quantityPage > 0) {
-      setQuantityPage(quantityPage - 1);
-    } else {
-      setPhase('toggles');
-    }
-  };
-
-  // ═══════════════════════════════════════
-  // PHASE 1: Toggle Chips
-  // ═══════════════════════════════════════
-  if (phase === 'toggles') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={28} color={Colors.text} />
-          </Pressable>
-          <Text style={styles.headerTitle}>Quick Check</Text>
-          <Pressable onPress={handleFinish} hitSlop={12}>
-            <Text style={styles.skipText}>Skip All</Text>
-          </Pressable>
-        </View>
-
-        {/* Progress */}
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: '50%' }]} />
-        </View>
-
-        <Text style={styles.phaseLabel}>Tap anything that applies today</Text>
-
-        <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
-          {togglesByCategory.map((group) => (
-            <View key={group.category} style={styles.categorySection}>
-              <Text style={styles.categorySectionLabel}>
-                {group.emoji} {group.label}
-              </Text>
-              <View style={styles.chipGrid}>
-                {group.chips.map((chip) => {
-                  const isActive = activeToggles.has(chip.id);
-                  const isCycling = !!chip.levels;
-                  const cycleIdx = cyclingValues[chip.id];
-                  const cycleVal = isCycling && cycleIdx != null ? chip.levels![cycleIdx] : null;
-
-                  // Cycling chip colors by scale type
-                  const SEVERITY_COLORS = [Colors.green, '#FFC107', Colors.orange, Colors.orange];
-                  const INVERSE_COLORS = [Colors.orange, Colors.orange, '#FFC107', Colors.green];
-                  const cycleColor = isCycling && cycleIdx != null
-                    ? (chip.colorScale === 'neutral' ? Colors.green
-                      : chip.colorScale === 'blue' ? Colors.primary
-                      : chip.colorScale === 'inverse' ? INVERSE_COLORS[Math.min(cycleIdx, 3)]
-                      : SEVERITY_COLORS[Math.min(cycleIdx, 3)])
-                    : null;
-
-                  return (
-                    <Pressable
-                      key={chip.id}
-                      style={[
-                        styles.toggleChip,
-                        // Regular toggles: colored by toggleColor (good=green, bad=orange, neutral=blue)
-                        !isCycling && isActive && (
-                          chip.toggleColor === 'bad' ? {
-                            backgroundColor: Colors.orangeBg,
-                            borderColor: Colors.orange,
-                          } : chip.toggleColor === 'neutral' ? {
-                            backgroundColor: Colors.primary + '20',
-                            borderColor: Colors.primary,
-                          } : styles.toggleChipActive // good or default = green
-                        ),
-                        // Cycling chips: colored border + tinted bg based on level
-                        isCycling && cycleColor ? {
-                          borderColor: cycleColor,
-                          backgroundColor: cycleColor + '20',
-                          borderStyle: 'solid' as any,
-                        } : isCycling ? styles.cyclingChip : null,
-                      ]}
-                      onPress={() => handleToggle(chip)}
-                    >
-                      <Text style={styles.chipEmoji}>{chip.emoji}</Text>
-                      <Text
-                        style={[
-                          styles.chipLabel,
-                          !isCycling && isActive && (
-                            chip.toggleColor === 'bad' ? { color: Colors.orange, fontWeight: '600' as any }
-                            : chip.toggleColor === 'neutral' ? { color: Colors.primary, fontWeight: '600' as any }
-                            : styles.chipLabelActive // good or default = green
-                          ),
-                          isCycling && cycleColor ? { color: cycleColor, fontWeight: '600' as any } : null,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {isCycling && cycleVal ? `${chip.label}: ${cycleVal}` : chip.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-
-        {/* Bottom button */}
-        <View style={styles.bottomBar}>
-          <Pressable style={styles.primaryButton} onPress={handleNextToQuantities}>
-            <Text style={styles.primaryButtonText}>Next: Details</Text>
-            <Ionicons name="arrow-forward" size={20} color={Colors.text} />
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // ═══════════════════════════════════════
-  // PHASE 2: Quantity Pickers (paginated)
-  // ═══════════════════════════════════════
-  const progressPct = totalPages > 0
-    ? 50 + ((quantityPage + 1) / totalPages) * 50
-    : 100;
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={handlePrevPage} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+        <Pressable onPress={onClose} hitSlop={12}>
+          <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Details</Text>
+        <Text style={styles.headerTitle}>Quick Check</Text>
         <Pressable onPress={handleFinish} hitSlop={12}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>Skip All</Text>
         </Pressable>
       </View>
 
-      {/* Progress */}
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${Math.min(progressPct, 100)}%` }]} />
-      </View>
+      <Text style={styles.phaseLabel}>Tap anything that applies today</Text>
 
-      <Text style={styles.pageCounter}>
-        Page {quantityPage + 1} of {totalPages}
-      </Text>
-
-      <View style={styles.pickersArea}>
-        {currentPagePickers.map((picker) => (
-          <View key={picker.id} style={styles.pickerBlock}>
-            <Text style={styles.pickerLabel}>
-              {picker.emoji} {picker.label}
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+        {togglesByCategory.map((group) => (
+          <View key={group.category} style={styles.categorySection}>
+            <Text style={styles.categorySectionLabel}>
+              {group.emoji} {group.label}
             </Text>
-            <View style={styles.optionRow}>
-              {picker.options.map((opt) => {
-                const isSelected = quantities[picker.id] === opt;
+            <View style={styles.chipGrid}>
+              {group.chips.map((chip) => {
+                const isActive = activeToggles.has(chip.id);
+                const isCycling = !!chip.levels;
+                const cycleIdx = cyclingValues[chip.id];
+                const cycleVal = isCycling && cycleIdx != null ? chip.levels![cycleIdx] : null;
+                const hasFollowUp = conditionalPickersMap.has(chip.id);
+
+                // Cycling chip colors by scale type
+                const SEVERITY_COLORS = [Colors.green, '#FFC107', Colors.orange, Colors.orange];
+                const INVERSE_COLORS = [Colors.orange, Colors.orange, '#FFC107', Colors.green];
+                const cycleColor = isCycling && cycleIdx != null
+                  ? (chip.colorScale === 'neutral' ? Colors.green
+                    : chip.colorScale === 'blue' ? Colors.primary
+                    : chip.colorScale === 'inverse' ? INVERSE_COLORS[Math.min(cycleIdx, 3)]
+                    : SEVERITY_COLORS[Math.min(cycleIdx, 3)])
+                  : null;
+
                 return (
                   <Pressable
-                    key={opt}
-                    style={[styles.optionChip, isSelected && styles.optionChipSelected]}
-                    onPress={() => handleQuantitySelect(picker.id, opt)}
+                    key={chip.id}
+                    style={[
+                      styles.toggleChip,
+                      // Regular toggles: colored by toggleColor
+                      !isCycling && isActive && (
+                        chip.toggleColor === 'bad' ? {
+                          backgroundColor: Colors.orangeBg,
+                          borderColor: Colors.orange,
+                        } : chip.toggleColor === 'neutral' ? {
+                          backgroundColor: Colors.primary + '20',
+                          borderColor: Colors.primary,
+                        } : styles.toggleChipActive
+                      ),
+                      // Cycling chips: colored border + tinted bg based on level
+                      isCycling && cycleColor ? {
+                        borderColor: cycleColor,
+                        backgroundColor: cycleColor + '20',
+                        borderStyle: 'solid' as any,
+                      } : isCycling ? styles.cyclingChip : null,
+                    ]}
+                    onPress={() => handleToggle(chip)}
                   >
+                    <Text style={styles.chipEmoji}>{chip.emoji}</Text>
                     <Text
-                      style={[styles.optionText, isSelected && styles.optionTextSelected]}
+                      style={[
+                        styles.chipLabel,
+                        !isCycling && isActive && (
+                          chip.toggleColor === 'bad' ? { color: Colors.orange, fontWeight: '600' as any }
+                          : chip.toggleColor === 'neutral' ? { color: Colors.primary, fontWeight: '600' as any }
+                          : styles.chipLabelActive
+                        ),
+                        isCycling && cycleColor ? { color: cycleColor, fontWeight: '600' as any } : null,
+                      ]}
                       numberOfLines={1}
                     >
-                      {opt}
+                      {isCycling && cycleVal ? `${chip.label}: ${cycleVal}` : chip.label}
                     </Text>
+                    {/* Small dot indicator for chips with follow-ups */}
+                    {hasFollowUp && isActive && (
+                      <View style={styles.followUpDot} />
+                    )}
                   </Pressable>
                 );
               })}
             </View>
-            {picker.hasTextInput && (
-              <TextInput
-                style={styles.pickerTextInput}
-                placeholder={picker.textPlaceholder || 'Add details...'}
-                placeholderTextColor={Colors.textMuted}
-                value={textNotes[picker.id] || ''}
-                onChangeText={(text) => setTextNotes((prev) => ({ ...prev, [picker.id]: text }))}
-                multiline
-                numberOfLines={2}
-                textAlignVertical="top"
-              />
-            )}
           </View>
         ))}
-      </View>
+      </ScrollView>
 
-      {/* Bottom navigation */}
+      {/* Bottom button */}
       <View style={styles.bottomBar}>
-        <Pressable style={styles.primaryButton} onPress={handleNextPage}>
-          <Text style={styles.primaryButtonText}>
-            {quantityPage + 1 >= totalPages ? 'Done' : 'Next'}
-          </Text>
-          <Ionicons
-            name={quantityPage + 1 >= totalPages ? 'checkmark' : 'arrow-forward'}
-            size={20}
-            color={Colors.text}
-          />
+        <Pressable style={styles.primaryButton} onPress={handleFinish}>
+          <Text style={styles.primaryButtonText}>Done</Text>
+          <Ionicons name="checkmark" size={20} color={Colors.text} />
         </Pressable>
       </View>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* Follow-up popup (centered modal)       */}
+      {/* ═══════════════════════════════════════ */}
+      <Modal
+        visible={popupChipId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPopupChipId(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setPopupChipId(null)}>
+          <Pressable style={styles.popupCard} onPress={(e) => e.stopPropagation()}>
+            {/* Popup header */}
+            <View style={styles.popupHeader}>
+              <Text style={styles.popupTitle}>Quick follow-up</Text>
+              <Pressable onPress={() => setPopupChipId(null)} hitSlop={12}>
+                <Ionicons name="close-circle" size={24} color={Colors.textMuted} />
+              </Pressable>
+            </View>
+
+            {/* Picker questions */}
+            {popupPickers.map((picker) => (
+              <View key={picker.id} style={styles.popupPickerBlock}>
+                <Text style={styles.popupPickerLabel}>
+                  {picker.emoji} {picker.label}
+                </Text>
+                <View style={styles.optionRow}>
+                  {picker.options.map((opt) => {
+                    const isSelected = quantities[picker.id] === opt;
+                    return (
+                      <Pressable
+                        key={opt}
+                        style={[styles.optionChip, isSelected && styles.optionChipSelected]}
+                        onPress={() => handleQuantitySelect(picker.id, opt)}
+                      >
+                        <Text
+                          style={[styles.optionText, isSelected && styles.optionTextSelected]}
+                          numberOfLines={1}
+                        >
+                          {opt}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {picker.hasTextInput && (
+                  <TextInput
+                    style={styles.pickerTextInput}
+                    placeholder={picker.textPlaceholder || 'Add details...'}
+                    placeholderTextColor={Colors.textMuted}
+                    value={textNotes[picker.id] || ''}
+                    onChangeText={(text) => setTextNotes((prev) => ({ ...prev, [picker.id]: text }))}
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                  />
+                )}
+              </View>
+            ))}
+
+            {/* Done button */}
+            <Pressable
+              style={styles.popupDoneButton}
+              onPress={() => setPopupChipId(null)}
+            >
+              <Text style={styles.popupDoneText}>Got it</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -364,20 +321,11 @@ const styles = StyleSheet.create({
   headerTitle: { color: Colors.text, fontSize: 18, fontWeight: '600' },
   skipText: { color: Colors.primary, fontSize: 15, fontWeight: '600' },
 
-  progressBar: {
-    height: 4,
-    backgroundColor: Colors.surfaceLight,
-    marginHorizontal: 16,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 2 },
-
   phaseLabel: {
     color: Colors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 4,
     marginBottom: 4,
   },
 
@@ -418,24 +366,49 @@ const styles = StyleSheet.create({
   chipEmoji: { fontSize: 16 },
   chipLabel: { color: Colors.textSecondary, fontSize: 13 },
   chipLabelActive: { color: Colors.green, fontWeight: '600' },
+  followUpDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+    marginLeft: 2,
+  },
 
-  // Quantity pickers
-  pageCounter: {
-    color: Colors.textMuted,
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  pickersArea: {
+  // Modal overlay
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    gap: 28,
+    alignItems: 'center',
+    padding: 24,
   },
-  pickerBlock: { gap: 10 },
-  pickerLabel: {
+  popupCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 360,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  popupTitle: {
     color: Colors.text,
     fontSize: 17,
+    fontWeight: '700',
+  },
+  popupPickerBlock: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  popupPickerLabel: {
+    color: Colors.text,
+    fontSize: 15,
     fontWeight: '600',
   },
   optionRow: {
@@ -469,6 +442,19 @@ const styles = StyleSheet.create({
     minHeight: 50,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+
+  popupDoneButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  popupDoneText: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   // Bottom
