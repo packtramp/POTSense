@@ -232,11 +232,20 @@ export default function HomeScreen() {
     return Colors.primary;
   };
 
+  // Web pull-to-refresh: detect overscroll past top
+  const handleScroll = useCallback((e: any) => {
+    if (Platform.OS !== 'web' || refreshing) return;
+    const y = e.nativeEvent.contentOffset.y;
+    if (y < -80) onRefresh();
+  }, [refreshing, onRefresh]);
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
+      refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} /> : undefined}
+      onScroll={Platform.OS === 'web' ? handleScroll : undefined}
+      scrollEventThrottle={16}
     >
       {/* Weather Card */}
       <View style={styles.weatherCard}>

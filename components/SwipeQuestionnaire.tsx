@@ -195,14 +195,24 @@ export default function SwipeQuestionnaire({
                   const isCycling = !!chip.levels;
                   const cycleIdx = cyclingValues[chip.id];
                   const cycleVal = isCycling && cycleIdx != null ? chip.levels![cycleIdx] : null;
+
+                  // Cycling chip colors: green(0) → yellow(1) → orange(2+)
+                  const CYCLE_COLORS = [Colors.green, '#FFC107', Colors.orange, Colors.orange];
+                  const cycleColor = isCycling && cycleIdx != null ? CYCLE_COLORS[Math.min(cycleIdx, 3)] : null;
+
                   return (
                     <Pressable
                       key={chip.id}
                       style={[
                         styles.toggleChip,
-                        isActive && styles.toggleChipActive,
-                        isCycling && styles.cyclingChip,
-                        isCycling && cycleVal && cycleVal !== '0' && cycleVal !== 'None' && styles.cyclingChipActive,
+                        // Regular toggles: green when active
+                        !isCycling && isActive && styles.toggleChipActive,
+                        // Cycling chips: colored border + tinted bg based on level
+                        isCycling && cycleColor ? {
+                          borderColor: cycleColor,
+                          backgroundColor: cycleColor + '20',
+                          borderStyle: 'solid' as any,
+                        } : isCycling ? styles.cyclingChip : null,
                       ]}
                       onPress={() => handleToggle(chip)}
                     >
@@ -210,8 +220,8 @@ export default function SwipeQuestionnaire({
                       <Text
                         style={[
                           styles.chipLabel,
-                          isActive && styles.chipLabelActive,
-                          isCycling && cycleVal && cycleVal !== '0' && cycleVal !== 'None' && styles.cyclingLabelActive,
+                          !isCycling && isActive && styles.chipLabelActive,
+                          isCycling && cycleColor ? { color: cycleColor, fontWeight: '600' as any } : null,
                         ]}
                         numberOfLines={1}
                       >
@@ -387,12 +397,6 @@ const styles = StyleSheet.create({
   cyclingChip: {
     borderStyle: 'dashed' as any,
   },
-  cyclingChipActive: {
-    backgroundColor: Colors.primaryLight + '20',
-    borderColor: Colors.primary,
-    borderStyle: 'solid' as any,
-  },
-  cyclingLabelActive: { color: Colors.primary, fontWeight: '600' },
   chipEmoji: { fontSize: 16 },
   chipLabel: { color: Colors.textSecondary, fontSize: 13 },
   chipLabelActive: { color: Colors.green, fontWeight: '600' },
