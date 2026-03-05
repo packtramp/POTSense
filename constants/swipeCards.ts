@@ -10,7 +10,7 @@ export type ToggleChip = {
   emoji: string;
   category: string;
   levels?: string[]; // If set, chip cycles through these values on tap instead of on/off
-  colorScale?: 'severity' | 'neutral'; // severity = green→yellow→orange, neutral = always green
+  colorScale?: 'severity' | 'inverse' | 'neutral'; // severity = green→yellow→orange, inverse = orange→yellow→green, neutral = always green
 };
 
 export type QuantityPicker = {
@@ -43,13 +43,13 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet' },
 
   // Sleep
-  { id: 'sleep_hours', label: 'Sleep', emoji: '🕐', category: 'sleep', levels: ['< 4 hrs', '4-5 hrs', '6-7 hrs', '8+ hrs'] },
+  { id: 'sleep_hours', label: 'Sleep', emoji: '🕐', category: 'sleep', levels: ['< 4 hrs', '4-5 hrs', '6-7 hrs', '8+ hrs'], colorScale: 'inverse' },
   { id: 'good_sleep', label: 'Good Sleep', emoji: '😴', category: 'sleep' },
   { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep' },
   { id: 'head_elevated', label: 'Head Elevated', emoji: '🛏️', category: 'sleep' },
 
   // Activity
-  { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'] },
+  { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'], colorScale: 'inverse' },
   { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity' },
   { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity' },
   { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity' },

@@ -196,10 +196,13 @@ export default function SwipeQuestionnaire({
                   const cycleIdx = cyclingValues[chip.id];
                   const cycleVal = isCycling && cycleIdx != null ? chip.levels![cycleIdx] : null;
 
-                  // Cycling chip colors: severity = green→yellow→orange, neutral = always green
+                  // Cycling chip colors by scale type
                   const SEVERITY_COLORS = [Colors.green, '#FFC107', Colors.orange, Colors.orange];
+                  const INVERSE_COLORS = [Colors.orange, Colors.orange, '#FFC107', Colors.green];
                   const cycleColor = isCycling && cycleIdx != null
-                    ? (chip.colorScale === 'neutral' ? Colors.green : SEVERITY_COLORS[Math.min(cycleIdx, 3)])
+                    ? (chip.colorScale === 'neutral' ? Colors.green
+                      : chip.colorScale === 'inverse' ? INVERSE_COLORS[Math.min(cycleIdx, 3)]
+                      : SEVERITY_COLORS[Math.min(cycleIdx, 3)])
                     : null;
 
                   return (
