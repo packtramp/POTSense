@@ -75,7 +75,17 @@
 - **Dedup:** `lastPartnerEpisodeSummary` date on user doc
 - **Batch:** If partner logged multiple episodes, combine into single email summary
 
-### 9. Partner Invite
+### 9. New Article / News Alert
+- **Channel:** Push
+- **Trigger:** Cron job detects new RSS article not previously seen
+- **Recipient:** All users with news alerts enabled
+- **Message:** "New article: [Title]"
+- **Action:** Opens News tab
+- **Dedup:** Track seen article GUIDs in Firestore `system/seenArticles`
+- **Frequency:** Max 2 per day (batch if multiple new articles)
+- **Implementation:** Cron every 2h → fetch RSS → compare GUIDs → push if new
+
+### 10. Partner Invite
 - **Channel:** Push + Email + SMS (when available)
 - **Trigger:** Member generates invite code and shares
 - **Content:** "[Name] invited you to help track their POTS symptoms with POTSense. Code: [A7K9M2]"

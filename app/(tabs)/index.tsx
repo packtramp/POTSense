@@ -7,7 +7,15 @@ import { collection, query, orderBy, limit, getDocs, where, Timestamp, doc, getD
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescription } from '@/lib/weather';
+import { Linking } from 'react-native';
 import { Colors } from '@/constants/Colors';
+
+const SOCIAL_LINKS = [
+  { key: 'facebook', icon: 'logo-facebook' as const, color: '#1877F2', url: '' },
+  { key: 'instagram', icon: 'logo-instagram' as const, color: '#E4405F', url: '' },
+  { key: 'tiktok', icon: 'logo-tiktok' as const, color: '#fff', url: '' },
+  { key: 'reddit', icon: 'logo-reddit' as const, color: '#FF4500', url: 'https://reddit.com/r/POTS' },
+];
 
 const DAILY_TRACKERS = [
   { key: 'water', emoji: '💧', label: 'Water', levels: ['--', 'Low', 'Med', 'High'] },
@@ -161,6 +169,21 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* Social / Community */}
+      <View style={styles.socialRow}>
+        {SOCIAL_LINKS.map((s) => (
+          <Pressable
+            key={s.key}
+            style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => {
+              if (s.url) Linking.openURL(s.url);
+            }}
+          >
+            <Ionicons name={s.icon} size={22} color={s.color} />
+          </Pressable>
+        ))}
+      </View>
+
       {/* Daily Trackers */}
       <Text style={styles.sectionTitle}>Today's Tracking</Text>
       <View style={styles.trackerRow}>
@@ -228,6 +251,23 @@ const styles = StyleSheet.create({
   weatherDetail: { color: Colors.textSecondary, fontSize: 15, marginTop: 4 },
   weatherNote: { color: Colors.textMuted, fontSize: 12, marginTop: 8, fontStyle: 'italic' },
   weatherWarning: { color: Colors.orange, fontSize: 13, fontWeight: '600', marginTop: 8 },
+
+  socialRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 20,
+  },
+  socialBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
 
   sectionTitle: { color: Colors.text, fontSize: 16, fontWeight: '600', marginBottom: 12 },
   trackerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
