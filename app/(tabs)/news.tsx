@@ -36,7 +36,7 @@ const RSS_FEEDS = [
   { name: 'Health Rising', url: 'https://www.healthrising.org/feed/' },
 ];
 
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+const RSS_PROXY = '/api/rss?url=';
 
 // ── Conference Events (manually curated — update periodically) ──
 
@@ -170,7 +170,7 @@ function parseRssXml(xml: string, sourceName: string): Article[] {
 
 async function fetchFeed(feed: { name: string; url: string }): Promise<Article[]> {
   try {
-    const res = await fetch(`${CORS_PROXY}${encodeURIComponent(feed.url)}`);
+    const res = await fetch(`${RSS_PROXY}${encodeURIComponent(feed.url)}`);
     if (!res.ok) return [];
     const xml = await res.text();
     if (!xml.includes('<item>')) return [];
