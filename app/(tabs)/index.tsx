@@ -10,11 +10,29 @@ import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescripti
 import { Linking } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
+const SHARE_TEXT = "Found this great POTS app to help track dysautonomia episodes and triggers! Check it out at www.POTSense.org";
+const SHARE_URL = 'https://www.potsense.org';
+
 const SOCIAL_LINKS = [
-  { key: 'facebook', icon: 'logo-facebook' as const, color: '#1877F2', url: '' },
-  { key: 'instagram', icon: 'logo-instagram' as const, color: '#E4405F', url: '' },
-  { key: 'tiktok', icon: 'logo-tiktok' as const, color: '#fff', url: '' },
-  { key: 'reddit', icon: 'logo-reddit' as const, color: '#FF4500', url: 'https://reddit.com/r/POTS' },
+  {
+    key: 'facebook',
+    icon: 'logo-facebook' as const,
+    color: '#1877F2',
+    getUrl: () => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`,
+  },
+  {
+    key: 'instagram',
+    icon: 'logo-instagram' as const,
+    color: '#E4405F',
+    // Instagram has no web share URL — open the site so they can copy/paste
+    getUrl: () => SHARE_URL,
+  },
+  {
+    key: 'reddit',
+    icon: 'logo-reddit' as const,
+    color: '#FF4500',
+    getUrl: () => `https://www.reddit.com/submit?url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TEXT)}`,
+  },
 ];
 
 const DAILY_TRACKERS = [
@@ -169,15 +187,14 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Social / Community */}
+      {/* Share / Community */}
+      <Text style={styles.shareLabel}>Share POTSense</Text>
       <View style={styles.socialRow}>
         {SOCIAL_LINKS.map((s) => (
           <Pressable
             key={s.key}
             style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => {
-              if (s.url) Linking.openURL(s.url);
-            }}
+            onPress={() => Linking.openURL(s.getUrl())}
           >
             <Ionicons name={s.icon} size={22} color={s.color} />
           </Pressable>
@@ -252,6 +269,7 @@ const styles = StyleSheet.create({
   weatherNote: { color: Colors.textMuted, fontSize: 12, marginTop: 8, fontStyle: 'italic' },
   weatherWarning: { color: Colors.orange, fontSize: 13, fontWeight: '600', marginTop: 8 },
 
+  shareLabel: { color: Colors.textSecondary, fontSize: 12, textAlign: 'center', marginBottom: 8 },
   socialRow: {
     flexDirection: 'row',
     justifyContent: 'center',
