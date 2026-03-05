@@ -21,7 +21,7 @@ const SEVERITY = [
 const SYMPTOM_CHIPS = [
   'Dizzy', 'Nausea', 'Racing Heart', 'Brain Fog', 'Fainting',
   'Lightheaded', 'Shaking', 'Blurry Vision', 'Chest Pain', 'Fatigue',
-  'Sweating', 'Headache', 'Shortness of Breath', 'Weakness',
+  'Sweating', 'Headache', 'Shortness of Breath', 'Weakness', 'Noise Sensitivity',
 ];
 
 type Phase = 'details' | 'swipe';

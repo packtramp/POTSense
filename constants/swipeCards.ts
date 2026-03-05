@@ -61,6 +61,7 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'altitude', label: 'Altitude Change', emoji: '⛰️', category: 'environment' },
   { id: 'crowded', label: 'Crowded Place', emoji: '👥', category: 'environment' },
   { id: 'air_quality', label: 'Bad Air Quality', emoji: '🌫️', category: 'environment' },
+  { id: 'loud_noise', label: 'Loud Noise', emoji: '🔊', category: 'environment' },
 
   // Health
   { id: 'new_med', label: 'New Medication', emoji: '🆕', category: 'health' },

@@ -172,6 +172,7 @@ export default function TrendsScreen() {
     hot_environment: '🌡️ Hot Environment', alcohol: '🍷 Alcohol', large_meal: '🍔 Large Meal',
     got_up_quickly: '⚡ Got Up Quickly', exercise: '🏃 Exercise', bath_shower: '🛁 Bath/Shower',
     menstrual: '🩸 Menstrual', emotional: '😢 Emotional', allergy: '🤧 Allergic Reaction',
+    loud_noise: '🔊 Loud Noise', hot: '🔥 Been in Heat', crowded: '👥 Crowded Place',
   };
   filtered.forEach((e) => {
     if (!e.questionnaire) return;

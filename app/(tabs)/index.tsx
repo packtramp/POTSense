@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Modal, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -126,6 +126,59 @@ export default function HomeScreen() {
   const [trackerValues, setTrackerValues] = useState<Record<string, string>>({});
   const [refCode, setRefCode] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(() => {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    const episodesRef = collection(db, 'patients', user.uid, 'episodes');
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const weekTs = Timestamp.fromDate(startOfWeek);
+
+    getDocs(query(episodesRef, where('timestamp', '>=', weekTs), orderBy('timestamp', 'desc')))
+      .then((snap) => {
+        setWeekCount(snap.size);
+        const todayEps = snap.docs.filter((d) => {
+          const ts = d.data().timestamp?.toDate?.();
+          return ts && ts >= startOfToday;
+        });
+        setTodayCount(todayEps.length);
+      })
+      .catch(() => {});
+
+    getDocs(query(episodesRef, orderBy('timestamp', 'desc'), limit(1)))
+      .then((snap) => {
+        if (snap.empty) { setLastEpisode('--'); return; }
+        const ts = snap.docs[0].data().timestamp?.toDate?.();
+        if (!ts) { setLastEpisode('--'); return; }
+        const diff = Date.now() - ts.getTime();
+        const hours = Math.floor(diff / 3600000);
+        const mins = Math.floor(diff / 60000);
+        if (mins < 2) setLastEpisode('Just now');
+        else if (mins < 60) setLastEpisode(`${mins}m ago`);
+        else if (hours < 24) setLastEpisode(`${hours}h ago`);
+        else setLastEpisode(`${Math.floor(hours / 24)}d ago`);
+      })
+      .catch(() => {});
+
+    const todayKey = getTodayKey();
+    getDoc(doc(db, 'patients', user.uid, 'dailyLogs', todayKey))
+      .then((snap) => {
+        if (snap.exists()) {
+          setTrackerValues(snap.data().trackers || {});
+        } else {
+          setTrackerValues({});
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch weather + referral code on mount
   useEffect(() => {
@@ -140,67 +193,17 @@ export default function HomeScreen() {
   }, []);
 
   // Refresh episode stats + daily log when tab is focused
-  useFocusEffect(
-    useCallback(() => {
-      const user = getCurrentUser();
-      if (!user) return;
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-      const episodesRef = collection(db, 'patients', user.uid, 'episodes');
-
-      // Get today's count
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-
-      // Get week count
-      const startOfWeek = new Date();
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      const weekTs = Timestamp.fromDate(startOfWeek);
-
-      // Fetch all episodes this week (covers both today + week counts)
-      getDocs(query(episodesRef, where('timestamp', '>=', weekTs), orderBy('timestamp', 'desc')))
-        .then((snap) => {
-          setWeekCount(snap.size);
-          const todayEps = snap.docs.filter((d) => {
-            const ts = d.data().timestamp?.toDate?.();
-            return ts && ts >= startOfToday;
-          });
-          setTodayCount(todayEps.length);
-        })
-        .catch(() => {});
-
-      // Get last episode
-      getDocs(query(episodesRef, orderBy('timestamp', 'desc'), limit(1)))
-        .then((snap) => {
-          if (snap.empty) {
-            setLastEpisode('--');
-            return;
-          }
-          const ts = snap.docs[0].data().timestamp?.toDate?.();
-          if (!ts) { setLastEpisode('--'); return; }
-          const diff = Date.now() - ts.getTime();
-          const hours = Math.floor(diff / 3600000);
-          const mins = Math.floor(diff / 60000);
-          if (mins < 2) setLastEpisode('Just now');
-          else if (mins < 60) setLastEpisode(`${mins}m ago`);
-          else if (hours < 24) setLastEpisode(`${hours}h ago`);
-          else setLastEpisode(`${Math.floor(hours / 24)}d ago`);
-        })
-        .catch(() => {});
-
-      // Load today's daily log
-      const todayKey = getTodayKey();
-      getDoc(doc(db, 'patients', user.uid, 'dailyLogs', todayKey))
-        .then((snap) => {
-          if (snap.exists()) {
-            setTrackerValues(snap.data().trackers || {});
-          } else {
-            setTrackerValues({});
-          }
-        })
-        .catch(() => {});
-    }, [])
-  );
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Refresh weather + data
+    getWeatherForCurrentLocation().then((w) => {
+      if (w) setWeather(w);
+    });
+    loadData();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [loadData]);
 
   const cycleTracker = (tracker: typeof DAILY_TRACKERS[0]) => {
     const currentVal = trackerValues[tracker.key] || '--';
@@ -230,7 +233,11 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
+    >
       {/* Weather Card */}
       <View style={styles.weatherCard}>
         <Text style={styles.weatherTitle}>🌡️ Current Conditions</Text>

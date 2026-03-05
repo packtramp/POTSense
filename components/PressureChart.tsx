@@ -23,6 +23,7 @@ type Props = {
 const SEVERITY_COLORS = ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#EF5350'];
 const PADDING = { top: 24, right: 16, bottom: 32, left: 0 };
 const Y_AXIS_WIDTH = 52;
+const HPA_TO_INHG = 0.02953;
 const PX_PER_DAY = 44; // ~7 days visible on phone viewport, scroll for more
 const MIN_CHART_DAYS = 7; // minimum days to fill the viewport
 
@@ -110,12 +111,12 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
   const chartH = height - PADDING.top - PADDING.bottom;
   const svgWidth = chartCanvasW + PADDING.right;
 
-  // Pressure range
+  // Pressure range (internal math stays in hPa, display in inHg)
   const allPressures = hasHourly
     ? hourlyData.map((d) => d.pressure)
     : episodes.map((d) => d.pressure);
-  const minP = Math.floor(Math.min(...allPressures) - 1);
-  const maxP = Math.ceil(Math.max(...allPressures) + 1);
+  const minP = Math.min(...allPressures) - 1;
+  const maxP = Math.max(...allPressures) + 1;
   const pRange = maxP - minP || 1;
 
   const scaleX = (t: number) => ((t - minT) / tRange) * chartCanvasW;
@@ -167,7 +168,7 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
               x={Y_AXIS_WIDTH - 6} y={scaleY(tick) + 4}
               fill={Colors.textMuted} fontSize={10} textAnchor="end"
             >
-              {tick.toFixed(0)}
+              {(tick * HPA_TO_INHG).toFixed(2)}
             </SvgText>
           ))}
           <SvgText
@@ -175,7 +176,7 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
             fill={Colors.textSecondary} fontSize={10} textAnchor="middle"
             rotation="-90" origin={`12, ${PADDING.top + chartH / 2}`}
           >
-            hPa
+            inHg
           </SvgText>
         </Svg>
 
