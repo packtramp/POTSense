@@ -69,7 +69,7 @@ function getSocialLinks(refCode: string | null) {
     {
       key: 'sms',
       icon: 'chatbubble-outline' as const,
-      color: '#66BB6A',
+      color: '#448AFF',
       onPress: () => Linking.openURL(`sms:?body=${encodeURIComponent(shareText)}`),
     },
     {
