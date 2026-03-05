@@ -14,6 +14,7 @@ export type QuestionnaireResult = {
   toggles: Record<string, boolean>;
   quantities: Record<string, string>;
   notes: Record<string, string>; // text input values keyed by picker id
+  cyclingValues: Record<string, string>; // cycling chip values (e.g. alcohol: "2", brain_fog: "Moderate")
 };
 
 type Props = {
@@ -33,6 +34,7 @@ export default function SwipeQuestionnaire({
 }: Props) {
   const [phase, setPhase] = useState<'toggles' | 'quantities'>('toggles');
   const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set());
+  const [cyclingValues, setCyclingValues] = useState<Record<string, number>>({}); // index into levels[]
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [textNotes, setTextNotes] = useState<Record<string, string>>({});
   const [quantityPage, setQuantityPage] = useState(0);
@@ -70,13 +72,39 @@ export default function SwipeQuestionnaire({
     return grouped;
   }, [toggleChips]);
 
-  const handleToggle = (id: string) => {
-    setActiveToggles((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const handleToggle = (chip: ToggleChip) => {
+    if (chip.levels) {
+      // Cycling chip: advance to next level, wrap to 0 (off)
+      setCyclingValues((prev) => {
+        const currentIdx = prev[chip.id] ?? -1; // -1 = unset (show first level on first tap)
+        const nextIdx = currentIdx + 1;
+        if (nextIdx >= chip.levels!.length) {
+          // Wrapped past last level → reset to off
+          const next = { ...prev };
+          delete next[chip.id];
+          // Also remove from activeToggles
+          setActiveToggles((at) => { const n = new Set(at); n.delete(chip.id); return n; });
+          return next;
+        }
+        // Set active once past index 0 (or always for non-"None"/"0" first levels)
+        setActiveToggles((at) => {
+          const n = new Set(at);
+          const val = chip.levels![nextIdx];
+          if (val === '0' || val === 'None') n.delete(chip.id);
+          else n.add(chip.id);
+          return n;
+        });
+        return { ...prev, [chip.id]: nextIdx };
+      });
+    } else {
+      // Simple on/off toggle
+      setActiveToggles((prev) => {
+        const next = new Set(prev);
+        if (next.has(chip.id)) next.delete(chip.id);
+        else next.add(chip.id);
+        return next;
+      });
+    }
   };
 
   const handleQuantitySelect = (pickerId: string, value: string) => {
@@ -93,10 +121,18 @@ export default function SwipeQuestionnaire({
 
   const handleFinish = () => {
     const toggleResult: Record<string, boolean> = {};
+    const cyclingResult: Record<string, string> = {};
     for (const chip of toggleChips) {
-      toggleResult[chip.id] = activeToggles.has(chip.id);
+      if (chip.levels && cyclingValues[chip.id] != null) {
+        const val = chip.levels[cyclingValues[chip.id]];
+        cyclingResult[chip.id] = val;
+        // Mark as "active" toggle if not the zero/none value
+        toggleResult[chip.id] = val !== '0' && val !== 'None';
+      } else {
+        toggleResult[chip.id] = activeToggles.has(chip.id);
+      }
     }
-    onComplete({ toggles: toggleResult, quantities, notes: textNotes });
+    onComplete({ toggles: toggleResult, quantities, notes: textNotes, cyclingValues: cyclingResult });
   };
 
   const handleNextToQuantities = () => {
@@ -156,18 +192,30 @@ export default function SwipeQuestionnaire({
               <View style={styles.chipGrid}>
                 {group.chips.map((chip) => {
                   const isActive = activeToggles.has(chip.id);
+                  const isCycling = !!chip.levels;
+                  const cycleIdx = cyclingValues[chip.id];
+                  const cycleVal = isCycling && cycleIdx != null ? chip.levels![cycleIdx] : null;
                   return (
                     <Pressable
                       key={chip.id}
-                      style={[styles.toggleChip, isActive && styles.toggleChipActive]}
-                      onPress={() => handleToggle(chip.id)}
+                      style={[
+                        styles.toggleChip,
+                        isActive && styles.toggleChipActive,
+                        isCycling && styles.cyclingChip,
+                        isCycling && cycleVal && cycleVal !== '0' && cycleVal !== 'None' && styles.cyclingChipActive,
+                      ]}
+                      onPress={() => handleToggle(chip)}
                     >
                       <Text style={styles.chipEmoji}>{chip.emoji}</Text>
                       <Text
-                        style={[styles.chipLabel, isActive && styles.chipLabelActive]}
+                        style={[
+                          styles.chipLabel,
+                          isActive && styles.chipLabelActive,
+                          isCycling && cycleVal && cycleVal !== '0' && cycleVal !== 'None' && styles.cyclingLabelActive,
+                        ]}
                         numberOfLines={1}
                       >
-                        {chip.label}
+                        {isCycling && cycleVal ? `${chip.label}: ${cycleVal}` : chip.label}
                       </Text>
                     </Pressable>
                   );
@@ -336,6 +384,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.greenBg,
     borderColor: Colors.green,
   },
+  cyclingChip: {
+    borderStyle: 'dashed' as any,
+  },
+  cyclingChipActive: {
+    backgroundColor: Colors.primaryLight + '20',
+    borderColor: Colors.primary,
+    borderStyle: 'solid' as any,
+  },
+  cyclingLabelActive: { color: Colors.primary, fontWeight: '600' },
   chipEmoji: { fontSize: 16 },
   chipLabel: { color: Colors.textSecondary, fontSize: 13 },
   chipLabelActive: { color: Colors.green, fontWeight: '600' },

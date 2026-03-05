@@ -96,6 +96,9 @@ export default function EpisodeModal() {
         for (const [key, val] of Object.entries(result.notes)) {
           if (val.trim()) questionnaireMap[`${key}_note`] = val.trim();
         }
+        for (const [key, val] of Object.entries(result.cyclingValues)) {
+          questionnaireMap[key] = val;
+        }
       }
 
       // If user is a partner, save to the patient's collection

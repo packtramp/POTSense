@@ -9,6 +9,7 @@ export type ToggleChip = {
   label: string;
   emoji: string;
   category: string;
+  levels?: string[]; // If set, chip cycles through these values on tap instead of on/off
 };
 
 export type QuantityPicker = {
@@ -32,18 +33,20 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
 
   // Diet
   { id: 'ate', label: 'Eaten Recently', emoji: '🍽️', category: 'diet' },
-  { id: 'alcohol', label: 'Alcohol', emoji: '🍷', category: 'diet' },
+  { id: 'alcohol', label: 'Alcohol', emoji: '🍷', category: 'diet', levels: ['0', '1', '2', '3+'] },
   { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet' },
   { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet' },
   { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet' },
   { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet' },
 
   // Sleep
+  { id: 'sleep_hours', label: 'Sleep', emoji: '🕐', category: 'sleep', levels: ['< 4 hrs', '4-5 hrs', '6-7 hrs', '8+ hrs'] },
   { id: 'good_sleep', label: 'Good Sleep', emoji: '😴', category: 'sleep' },
   { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep' },
   { id: 'head_elevated', label: 'Head Elevated', emoji: '🛏️', category: 'sleep' },
 
   // Activity
+  { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'] },
   { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity' },
   { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity' },
   { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity' },
@@ -64,6 +67,7 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'loud_noise', label: 'Loud Noise', emoji: '🔊', category: 'environment' },
 
   // Health
+  { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', levels: ['None', 'Mild', 'Moderate', 'Severe'] },
   { id: 'new_med', label: 'New Medication', emoji: '🆕', category: 'health' },
   { id: 'compression', label: 'Compression', emoji: '🧦', category: 'health' },
   { id: 'menstrual', label: 'On Period', emoji: '🩸', category: 'health' },
@@ -73,6 +77,7 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'allergic_reaction', label: 'Allergic Reaction', emoji: '🤧', category: 'health' },
 
   // Mental
+  { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', levels: ['None', 'Mild', 'Moderate', 'Bad'] },
   { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental' },
 
   // Lifestyle
@@ -97,14 +102,9 @@ export const QUANTITY_PICKERS: QuantityPicker[] = [
   { id: 'caffeine_cups', label: 'Caffeine (cups)', emoji: '☕', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
   { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', options: ['Coffee', 'Tea', 'Energy Drink', 'Soda'] },
   { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
-  { id: 'sleep_hours', label: 'Sleep Hours', emoji: '🕐', category: 'sleep', options: ['< 4 hrs', '4-5 hrs', '6-7 hrs', '8+ hrs'] },
-  { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', options: ['None', 'Light', 'Moderate', 'Intense'] },
   { id: 'stress_level', label: 'Stress Level', emoji: '😰', category: 'mental', options: ['A little', 'Moderate', 'Very'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'What\'s causing stress?' },
-  { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', options: ['None', 'Mild', 'Moderate', 'Bad'] },
-  { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', options: ['None', 'Mild', 'Moderate', 'Severe'] },
 
   // ---- Conditional (triggered by Group 1 toggles) ----
-  { id: 'alcohol_qty', label: 'Drinks', emoji: '🍷', category: 'diet', options: ['1', '2', '3+'], conditional: 'alcohol' },
   { id: 'bath_type', label: 'Bath or Shower?', emoji: '🚿', category: 'activity', options: ['Bath', 'Shower'], conditional: 'bath' },
   { id: 'bath_temp', label: 'Water Temp', emoji: '🌡️', category: 'activity', options: ['Hot', 'Warm', 'Cool'], conditional: 'bath' },
   { id: 'period_day', label: 'Period Day', emoji: '🩸', category: 'health', options: ['Day 1-2', 'Day 3-4', 'Day 5+'], conditional: 'menstrual' },
