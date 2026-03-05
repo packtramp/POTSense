@@ -11,6 +11,7 @@ export type ToggleChip = {
   category: string;
   levels?: string[]; // If set, chip cycles through these values on tap instead of on/off
   colorScale?: 'severity' | 'inverse' | 'neutral' | 'blue'; // severity = green→yellow→orange, inverse = orange→yellow→green, neutral = always green, blue = brand blue throughout
+  toggleColor?: 'good' | 'bad' | 'neutral'; // For binary chips: good=green, bad=orange, neutral=blue. Default=green (legacy)
 };
 
 export type QuantityPicker = {
@@ -30,80 +31,77 @@ export type QuantityPicker = {
 
 export const TOGGLE_CHIPS: ToggleChip[] = [
   // Hydration
-  { id: 'salt', label: 'Extra Salt', emoji: '🧂', category: 'hydration' },
+  { id: 'salt', label: 'Extra Salt', emoji: '🧂', category: 'hydration', toggleColor: 'good' },
+  { id: 'water', label: 'Water (cups)', emoji: '💧', category: 'hydration', levels: ['0', '1-2', '3-4', '5-6', '7+'], colorScale: 'inverse' },
+  { id: 'electrolytes', label: 'Electrolytes', emoji: '⚡', category: 'hydration', levels: ['None', 'LMNT', 'Liquid IV', 'Nuun', 'Other'], colorScale: 'neutral' },
 
   // Diet
-  { id: 'ate', label: 'Eaten Recently', emoji: '🍽️', category: 'diet' },
+  { id: 'ate', label: 'Eaten Recently', emoji: '🍽️', category: 'diet', toggleColor: 'good' },
   { id: 'alcohol', label: 'Alcohol', emoji: '🍷', category: 'diet', levels: ['0', '1', '2', '3+'] },
   { id: 'caffeine_cups', label: 'Caffeine', emoji: '☕', category: 'diet', levels: ['0', '1', '2', '3+'] },
   { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', levels: ['Coffee', 'Tea', 'Energy Drink', 'Soda'], colorScale: 'neutral' },
-  { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet' },
-  { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet' },
-  { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet' },
-  { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet' },
+  { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', levels: ['0', '1', '2', '3+'] },
+  { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet', toggleColor: 'bad' },
+  { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet', toggleColor: 'bad' },
+  { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet', toggleColor: 'bad' },
+  { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet', toggleColor: 'bad' },
 
   // Sleep
-  { id: 'bad_sleep', label: 'Bad Sleep', emoji: '😴', category: 'sleep' },
-  { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep' },
+  { id: 'bad_sleep', label: 'Bad Sleep', emoji: '😴', category: 'sleep', toggleColor: 'bad' },
+  { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep', toggleColor: 'good' },
 
   // Activity
   { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'], colorScale: 'blue' },
-  { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity' },
-  { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity' },
-  { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity' },
-  { id: 'bath', label: 'Bath/Shower', emoji: '🛁', category: 'activity' },
-  { id: 'stairs', label: 'Stairs', emoji: '🪜', category: 'activity' },
-  { id: 'driving', label: 'Long Drive', emoji: '🚗', category: 'activity' },
-  { id: 'sedentary', label: 'Sitting All Day', emoji: '🛋️', category: 'activity' },
-  { id: 'standing', label: 'Long Standing', emoji: '🧍', category: 'activity' },
+  { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity', toggleColor: 'bad' },
+  { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity', toggleColor: 'neutral' },
+  { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity', toggleColor: 'bad' },
+  { id: 'bath', label: 'Bath/Shower', emoji: '🛁', category: 'activity', toggleColor: 'neutral' },
+  { id: 'stairs', label: 'Stairs', emoji: '🪜', category: 'activity', toggleColor: 'neutral' },
+  { id: 'driving', label: 'Long Drive', emoji: '🚗', category: 'activity', toggleColor: 'neutral' },
+  { id: 'sedentary', label: 'Sitting All Day', emoji: '🛋️', category: 'activity', toggleColor: 'bad' },
+  { id: 'standing', label: 'Long Standing', emoji: '🧍', category: 'activity', toggleColor: 'bad' },
 
   // Environment
-  { id: 'hot', label: 'Been in Heat', emoji: '🔥', category: 'environment' },
-  { id: 'temp_change', label: 'Temp Change', emoji: '🌡️', category: 'environment' },
-  { id: 'humidity', label: 'High Humidity', emoji: '💦', category: 'environment' },
-  { id: 'sun', label: 'Lots of Sun', emoji: '☀️', category: 'environment' },
-  { id: 'altitude', label: 'Altitude Change', emoji: '⛰️', category: 'environment' },
-  { id: 'crowded', label: 'Crowded Place', emoji: '👥', category: 'environment' },
-  { id: 'air_quality', label: 'Bad Air Quality', emoji: '🌫️', category: 'environment' },
-  { id: 'loud_noise', label: 'Loud Noise', emoji: '🔊', category: 'environment' },
+  { id: 'hot', label: 'Been in Heat', emoji: '🔥', category: 'environment', toggleColor: 'bad' },
+  { id: 'temp_change', label: 'Temp Change', emoji: '🌡️', category: 'environment', toggleColor: 'neutral' },
+  { id: 'humidity', label: 'High Humidity', emoji: '💦', category: 'environment', toggleColor: 'bad' },
+  { id: 'sun', label: 'Lots of Sun', emoji: '☀️', category: 'environment', toggleColor: 'bad' },
+  { id: 'altitude', label: 'Altitude Change', emoji: '⛰️', category: 'environment', toggleColor: 'neutral' },
+  { id: 'crowded', label: 'Crowded Place', emoji: '👥', category: 'environment', toggleColor: 'bad' },
+  { id: 'air_quality', label: 'Bad Air Quality', emoji: '🌫️', category: 'environment', toggleColor: 'bad' },
+  { id: 'loud_noise', label: 'Loud Noise', emoji: '🔊', category: 'environment', toggleColor: 'bad' },
 
   // Health
   { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', levels: ['None', 'Mild', 'Moderate', 'Severe'] },
-  { id: 'new_med', label: 'New Medication', emoji: '🆕', category: 'health' },
-  { id: 'compression', label: 'Compression', emoji: '🧦', category: 'health' },
-  { id: 'menstrual', label: 'On Period', emoji: '🩸', category: 'health' },
-  { id: 'illness', label: 'Feeling Sick', emoji: '🤒', category: 'health' },
-  { id: 'blood_pooling', label: 'Blood Pooling', emoji: '🦵', category: 'health' },
-  { id: 'gi_issues', label: 'GI Issues', emoji: '🤢', category: 'health' },
-  { id: 'allergic_reaction', label: 'Allergic Reaction', emoji: '🤧', category: 'health' },
+  { id: 'new_med', label: 'New Medication', emoji: '🆕', category: 'health', toggleColor: 'neutral' },
+  { id: 'compression', label: 'Compression', emoji: '🧦', category: 'health', toggleColor: 'good' },
+  { id: 'menstrual', label: 'On Period', emoji: '🩸', category: 'health', toggleColor: 'bad' },
+  { id: 'illness', label: 'Feeling Sick', emoji: '🤒', category: 'health', toggleColor: 'bad' },
+  { id: 'blood_pooling', label: 'Blood Pooling', emoji: '🦵', category: 'health', toggleColor: 'bad' },
+  { id: 'gi_issues', label: 'GI Issues', emoji: '🤢', category: 'health', toggleColor: 'bad' },
+  { id: 'allergic_reaction', label: 'Allergic Reaction', emoji: '🤧', category: 'health', toggleColor: 'bad' },
 
   // Mental
   { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', levels: ['None', 'Mild', 'Moderate', 'Bad'] },
   { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental', levels: ['None', 'Mild', 'Moderate', 'High'] },
 
   // Lifestyle
-  { id: 'screen_time', label: 'Screen Time', emoji: '📱', category: 'lifestyle' },
-  { id: 'tight_clothing', label: 'Tight Clothing', emoji: '👔', category: 'lifestyle' },
-  { id: 'social_event', label: 'Social Event', emoji: '🎉', category: 'lifestyle' },
-  { id: 'travel', label: 'Traveled', emoji: '✈️', category: 'lifestyle' },
-  { id: 'shopping', label: 'Shopping/Errands', emoji: '🛒', category: 'lifestyle' },
-  { id: 'cooking', label: 'Stood Cooking', emoji: '👨‍🍳', category: 'lifestyle' },
+  { id: 'screen_time', label: 'Screen Time', emoji: '📱', category: 'lifestyle', toggleColor: 'neutral' },
+  { id: 'tight_clothing', label: 'Tight Clothing', emoji: '👔', category: 'lifestyle', toggleColor: 'bad' },
+  { id: 'social_event', label: 'Social Event', emoji: '🎉', category: 'lifestyle', toggleColor: 'neutral' },
+  { id: 'travel', label: 'Traveled', emoji: '✈️', category: 'lifestyle', toggleColor: 'neutral' },
+  { id: 'shopping', label: 'Shopping/Errands', emoji: '🛒', category: 'lifestyle', toggleColor: 'neutral' },
+  { id: 'cooking', label: 'Stood Cooking', emoji: '👨‍🍳', category: 'lifestyle', toggleColor: 'neutral' },
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// GROUP 2 — Quantity Pickers
-// Always-show pickers appear for everyone.
-// Conditional pickers only appear if their Group 1 chip is ON.
+// GROUP 2 — Quantity Pickers (all conditional)
+// Only appear if their Group 1 chip is ON.
 // ═══════════════════════════════════════════════════════════════
 
 export const QUANTITY_PICKERS: QuantityPicker[] = [
-  // ---- Always Show ----
-  { id: 'water', label: 'Water (cups)', emoji: '💧', category: 'hydration', options: ['0', '1-2', '3-4', '5-6', '7+'] },
-  { id: 'electrolytes', label: 'Electrolytes', emoji: '⚡', category: 'hydration', options: ['None', 'LMNT', 'Liquid IV', 'Nuun', 'Other'] },
-  { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
+  // ---- All conditional (triggered by Group 1 toggles) ----
   { id: 'stress_notes', label: 'What\'s Causing Stress?', emoji: '😰', category: 'mental', options: ['Work', 'Health', 'Family', 'Other'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'Details...' },
-
-  // ---- Conditional (triggered by Group 1 toggles) ----
   { id: 'sleep_hours', label: 'How Many Hours?', emoji: '🕐', category: 'sleep', options: ['< 4 hrs', '4-5 hrs', '6-7 hrs'], conditional: 'bad_sleep' },
   { id: 'head_elevated', label: 'Head Elevated?', emoji: '🛏️', category: 'sleep', options: ['Yes', 'No'], conditional: 'bad_sleep' },
   { id: 'bath_type', label: 'Bath or Shower?', emoji: '🚿', category: 'activity', options: ['Bath', 'Shower'], conditional: 'bath' },

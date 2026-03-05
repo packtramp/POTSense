@@ -211,8 +211,16 @@ export default function SwipeQuestionnaire({
                       key={chip.id}
                       style={[
                         styles.toggleChip,
-                        // Regular toggles: green when active
-                        !isCycling && isActive && styles.toggleChipActive,
+                        // Regular toggles: colored by toggleColor (good=green, bad=orange, neutral=blue)
+                        !isCycling && isActive && (
+                          chip.toggleColor === 'bad' ? {
+                            backgroundColor: Colors.orangeBg,
+                            borderColor: Colors.orange,
+                          } : chip.toggleColor === 'neutral' ? {
+                            backgroundColor: Colors.primary + '20',
+                            borderColor: Colors.primary,
+                          } : styles.toggleChipActive // good or default = green
+                        ),
                         // Cycling chips: colored border + tinted bg based on level
                         isCycling && cycleColor ? {
                           borderColor: cycleColor,
@@ -226,7 +234,11 @@ export default function SwipeQuestionnaire({
                       <Text
                         style={[
                           styles.chipLabel,
-                          !isCycling && isActive && styles.chipLabelActive,
+                          !isCycling && isActive && (
+                            chip.toggleColor === 'bad' ? { color: Colors.orange, fontWeight: '600' as any }
+                            : chip.toggleColor === 'neutral' ? { color: Colors.primary, fontWeight: '600' as any }
+                            : styles.chipLabelActive // good or default = green
+                          ),
                           isCycling && cycleColor ? { color: cycleColor, fontWeight: '600' as any } : null,
                         ]}
                         numberOfLines={1}
