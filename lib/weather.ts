@@ -10,7 +10,11 @@ export type WeatherData = {
   humidity: number;              // %
   windSpeed: number;             // km/h
   weatherCode: number;
+  pressureChange1h: number;      // hPa change over 1 hour
   pressureChange3h: number;      // hPa change over 3 hours
+  pressureChange6h: number;      // hPa change over 6 hours
+  pressureChange24h: number;     // hPa change over 24 hours
+  pressureRatePerHour: number;   // avg hPa/hour over 3h (for rate classification)
   pressureTrend: 'rising' | 'falling' | 'steady';
   fetchedAt: string;             // ISO timestamp
 };
@@ -42,7 +46,8 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
 
 export async function fetchWeather(lat: number, lon: number): Promise<WeatherData | null> {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,surface_pressure,relative_humidity_2m,wind_speed_10m,weather_code&hourly=surface_pressure&past_hours=6&forecast_hours=1&timezone=auto`;
+    // Fetch 25 hours of history to calculate 1h, 3h, 6h, and 24h pressure changes
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,surface_pressure,relative_humidity_2m,wind_speed_10m,weather_code&hourly=surface_pressure&past_hours=25&forecast_hours=1&timezone=auto`;
 
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -50,15 +55,24 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
     const data = await res.json();
     const current = data.current;
     const hourlyPressures: number[] = data.hourly?.surface_pressure || [];
-
-    // Calculate 3h pressure change
     const currentPressure = current.surface_pressure;
-    let pressureChange3h = 0;
-    if (hourlyPressures.length >= 4) {
-      // hourly data goes back 6h, so index 0 = 6h ago, last = now
-      const threeHoursAgo = hourlyPressures[hourlyPressures.length - 4];
-      pressureChange3h = Math.round((currentPressure - threeHoursAgo) * 100) / 100;
-    }
+    const len = hourlyPressures.length;
+
+    // Calculate pressure changes over multiple windows
+    // Array: index 0 = 25h ago, last = current hour
+    const calcChange = (hoursBack: number) => {
+      const idx = len - 1 - hoursBack;
+      if (idx >= 0 && hourlyPressures[idx] != null) {
+        return Math.round((currentPressure - hourlyPressures[idx]) * 100) / 100;
+      }
+      return 0;
+    };
+
+    const pressureChange1h = calcChange(1);
+    const pressureChange3h = calcChange(3);
+    const pressureChange6h = calcChange(6);
+    const pressureChange24h = calcChange(24);
+    const pressureRatePerHour = pressureChange3h !== 0 ? Math.round((pressureChange3h / 3) * 100) / 100 : 0;
 
     const pressureTrend: WeatherData['pressureTrend'] =
       pressureChange3h < -1 ? 'falling' : pressureChange3h > 1 ? 'rising' : 'steady';
@@ -73,7 +87,11 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
       humidity: current.relative_humidity_2m,
       windSpeed: current.wind_speed_10m,
       weatherCode: current.weather_code,
+      pressureChange1h,
       pressureChange3h,
+      pressureChange6h,
+      pressureChange24h,
+      pressureRatePerHour,
       pressureTrend,
       fetchedAt: new Date().toISOString(),
     };

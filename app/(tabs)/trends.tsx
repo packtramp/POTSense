@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
@@ -27,7 +27,11 @@ type EpisodeData = {
   weather: {
     surfacePressure: number;
     surfacePressureInHg: number;
+    pressureChange1h: number;
     pressureChange3h: number;
+    pressureChange6h: number;
+    pressureChange24h: number;
+    pressureRatePerHour: number;
     pressureTrend: string;
   } | null;
   questionnaire: Record<string, string> | null;
@@ -48,6 +52,7 @@ export default function TrendsScreen() {
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState(0);
   const [hourlyPressure, setHourlyPressure] = useState<HourlyPressure[]>([]);
+  const [pressureDrill, setPressureDrill] = useState<'drops' | 'rises' | 'stable' | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const cardWidth = Math.min(screenW - 32, 600);
@@ -120,11 +125,39 @@ export default function TrendsScreen() {
 
   const pressureDropEpisodes = filtered.filter((e) => e.weather && e.weather.pressureChange3h < -2);
   const pressureRiseEpisodes = filtered.filter((e) => e.weather && e.weather.pressureChange3h > 2);
+  const stableEpisodes = filtered.filter((e) => e.weather && e.weather.pressureChange3h >= -2 && e.weather.pressureChange3h <= 2);
   const pressureDropPct = filtered.length > 0
     ? Math.round((pressureDropEpisodes.length / filtered.length) * 100) : 0;
   const pressureRisePct = filtered.length > 0
     ? Math.round((pressureRiseEpisodes.length / filtered.length) * 100) : 0;
   const stablePct = 100 - pressureDropPct - pressureRisePct;
+
+  // Rate-of-change breakdown for drill-down (buckets by 3h change magnitude)
+  const classifyRate = (change3h: number) => {
+    const abs = Math.abs(change3h);
+    if (abs <= 2) return 'stable';
+    if (abs <= 4) return 'gradual';  // 0.7-1.3 hPa/hr
+    if (abs <= 7) return 'moderate'; // 1.3-2.3 hPa/hr
+    return 'rapid';                   // >2.3 hPa/hr
+  };
+  const rateLabels: Record<string, string> = {
+    stable: 'Stable (≤2 hPa/3h)',
+    gradual: 'Gradual (2-4 hPa/3h)',
+    moderate: 'Moderate (4-7 hPa/3h)',
+    rapid: 'Rapid (>7 hPa/3h)',
+  };
+  const getDrillEpisodes = () => {
+    if (pressureDrill === 'drops') return pressureDropEpisodes;
+    if (pressureDrill === 'rises') return pressureRiseEpisodes;
+    if (pressureDrill === 'stable') return stableEpisodes;
+    return [];
+  };
+  const drillEpisodes = getDrillEpisodes();
+  const rateBuckets: Record<string, number> = { stable: 0, gradual: 0, moderate: 0, rapid: 0 };
+  drillEpisodes.forEach((e) => {
+    if (e.weather) rateBuckets[classifyRate(e.weather.pressureChange3h)]++;
+  });
+  const drillMaxBucket = Math.max(...Object.values(rateBuckets), 1);
 
   // Severity distribution
   const severityDist = [0, 0, 0, 0, 0];
@@ -246,18 +279,21 @@ export default function TrendsScreen() {
           </Text>
           <PressureChart hourlyData={filteredHourly} episodes={chartEpisodes} width={cardWidth - 32} />
           <View style={styles.pressureStats}>
-            <View style={styles.pressureStat}>
+            <Pressable style={styles.pressureStat} onPress={() => setPressureDrill('drops')}>
               <Text style={[styles.pressureStatVal, { color: Colors.red }]}>📉 {pressureDropPct}%</Text>
               <Text style={styles.pressureStatLabel}>during drops</Text>
-            </View>
-            <View style={styles.pressureStat}>
+              <Text style={styles.pressureStatTap}>tap for detail</Text>
+            </Pressable>
+            <Pressable style={styles.pressureStat} onPress={() => setPressureDrill('rises')}>
               <Text style={[styles.pressureStatVal, { color: Colors.green }]}>📈 {pressureRisePct}%</Text>
               <Text style={styles.pressureStatLabel}>during rises</Text>
-            </View>
-            <View style={styles.pressureStat}>
+              <Text style={styles.pressureStatTap}>tap for detail</Text>
+            </Pressable>
+            <Pressable style={styles.pressureStat} onPress={() => setPressureDrill('stable')}>
               <Text style={[styles.pressureStatVal, { color: Colors.primary }]}>➡️ {stablePct}%</Text>
               <Text style={styles.pressureStatLabel}>stable</Text>
-            </View>
+              <Text style={styles.pressureStatTap}>tap for detail</Text>
+            </Pressable>
           </View>
           {pressureDropPct > 40 && (
             <View style={styles.insightBanner}>
@@ -386,6 +422,62 @@ export default function TrendsScreen() {
       </Text>
 
       <View style={{ height: 20 }} />
+
+      {/* Pressure Drill-Down Modal */}
+      <Modal visible={pressureDrill !== null} transparent animationType="fade" onRequestClose={() => setPressureDrill(null)}>
+        <Pressable style={styles.drillOverlay} onPress={() => setPressureDrill(null)}>
+          <View style={styles.drillSheet}>
+            <Text style={styles.drillTitle}>
+              {pressureDrill === 'drops' ? '📉 Episodes During Pressure Drops' :
+               pressureDrill === 'rises' ? '📈 Episodes During Pressure Rises' :
+               '➡️ Episodes During Stable Pressure'}
+            </Text>
+            <Text style={styles.drillSubtitle}>
+              {drillEpisodes.length} episode{drillEpisodes.length !== 1 ? 's' : ''} — rate of change breakdown
+            </Text>
+
+            {/* Rate buckets */}
+            <View style={styles.drillBuckets}>
+              {Object.entries(rateBuckets).filter(([, count]) => count > 0 || pressureDrill === 'drops').map(([key, count]) => {
+                const pct = drillEpisodes.length > 0 ? Math.round((count / drillEpisodes.length) * 100) : 0;
+                return (
+                  <View key={key} style={styles.drillBucket}>
+                    <Text style={styles.drillBucketLabel}>{rateLabels[key]}</Text>
+                    <View style={styles.drillBarTrack}>
+                      <View style={[styles.drillBarFill, {
+                        width: `${(count / drillMaxBucket) * 100}%`,
+                        backgroundColor: key === 'rapid' ? Colors.red : key === 'moderate' ? Colors.orange : key === 'gradual' ? Colors.primary : Colors.textMuted,
+                      }]} />
+                    </View>
+                    <Text style={styles.drillBucketVal}>{count} ({pct}%)</Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Avg severity in this group */}
+            {drillEpisodes.length > 0 && (
+              <View style={styles.drillInsight}>
+                <Text style={styles.drillInsightText}>
+                  Avg severity: {(drillEpisodes.reduce((s, e) => s + e.severity, 0) / drillEpisodes.length).toFixed(1)}/5
+                  {'  ·  '}
+                  {pressureDrill === 'drops' && rateBuckets.rapid > 0
+                    ? `Rapid drops cause ${Math.round((rateBuckets.rapid / drillEpisodes.length) * 100)}% of your drop-related episodes`
+                    : pressureDrill === 'drops'
+                    ? 'No rapid pressure drops recorded yet'
+                    : pressureDrill === 'rises' && rateBuckets.rapid > 0
+                    ? `Rapid rises cause ${Math.round((rateBuckets.rapid / drillEpisodes.length) * 100)}% of your rise-related episodes`
+                    : 'Keep logging to see patterns'}
+                </Text>
+              </View>
+            )}
+
+            <Pressable style={styles.drillClose} onPress={() => setPressureDrill(null)}>
+              <Text style={styles.drillCloseText}>Close</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -425,6 +517,7 @@ const styles = StyleSheet.create({
   pressureStat: { alignItems: 'center' },
   pressureStatVal: { fontSize: 15, fontWeight: '700' },
   pressureStatLabel: { color: Colors.textMuted, fontSize: 10, marginTop: 2 },
+  pressureStatTap: { color: Colors.primary, fontSize: 9, marginTop: 2, textDecorationLine: 'underline' },
 
   insightBanner: {
     backgroundColor: 'rgba(255,152,0,0.1)', borderRadius: 8, padding: 10, marginTop: 12,
@@ -477,4 +570,27 @@ const styles = StyleSheet.create({
   dotActive: { backgroundColor: Colors.primary, width: 20 },
 
   cardIndicator: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 8 },
+
+  drillOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
+  drillSheet: {
+    backgroundColor: Colors.card, borderRadius: 16, padding: 20,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  drillTitle: { color: Colors.text, fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  drillSubtitle: { color: Colors.textMuted, fontSize: 12, marginBottom: 16 },
+  drillBuckets: { gap: 10, marginBottom: 16 },
+  drillBucket: { gap: 4 },
+  drillBucketLabel: { color: Colors.textSecondary, fontSize: 12 },
+  drillBarTrack: {
+    height: 18, backgroundColor: Colors.surfaceLight, borderRadius: 9, overflow: 'hidden',
+  },
+  drillBarFill: { height: '100%', borderRadius: 9, minWidth: 4 },
+  drillBucketVal: { color: Colors.textMuted, fontSize: 11, textAlign: 'right' },
+  drillInsight: {
+    backgroundColor: 'rgba(255,152,0,0.08)', borderRadius: 8, padding: 10, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(255,152,0,0.15)',
+  },
+  drillInsightText: { color: Colors.text, fontSize: 12, lineHeight: 18 },
+  drillClose: { paddingVertical: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: Colors.border },
+  drillCloseText: { color: Colors.textMuted, fontSize: 15 },
 });

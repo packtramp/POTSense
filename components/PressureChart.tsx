@@ -23,8 +23,8 @@ type Props = {
 const SEVERITY_COLORS = ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#EF5350'];
 const PADDING = { top: 24, right: 16, bottom: 32, left: 0 };
 const Y_AXIS_WIDTH = 52;
-const PX_PER_DAY = 60; // pixels per day — controls scroll width
-const MIN_CHART_DAYS = 5; // minimum days to fill the viewport
+const PX_PER_DAY = 44; // ~7 days visible on phone viewport, scroll for more
+const MIN_CHART_DAYS = 7; // minimum days to fill the viewport
 
 // Downsample hourly data for performance (keep every Nth point)
 function downsample(data: HourlyPressure[], maxPoints: number): HourlyPressure[] {
