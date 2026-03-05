@@ -57,5 +57,7 @@ body {
   color: #fff;
   margin: 0;
   padding: 0;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
 }
 `;

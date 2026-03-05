@@ -10,6 +10,7 @@ export type ToggleChip = {
   emoji: string;
   category: string;
   levels?: string[]; // If set, chip cycles through these values on tap instead of on/off
+  colorScale?: 'severity' | 'neutral'; // severity = green→yellow→orange, neutral = always green
 };
 
 export type QuantityPicker = {
@@ -34,6 +35,8 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   // Diet
   { id: 'ate', label: 'Eaten Recently', emoji: '🍽️', category: 'diet' },
   { id: 'alcohol', label: 'Alcohol', emoji: '🍷', category: 'diet', levels: ['0', '1', '2', '3+'] },
+  { id: 'caffeine_cups', label: 'Caffeine', emoji: '☕', category: 'diet', levels: ['0', '1', '2', '3+'] },
+  { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', levels: ['Coffee', 'Tea', 'Energy Drink', 'Soda'], colorScale: 'neutral' },
   { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet' },
   { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet' },
   { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet' },
@@ -99,8 +102,6 @@ export const QUANTITY_PICKERS: QuantityPicker[] = [
   // ---- Always Show ----
   { id: 'water', label: 'Water (cups)', emoji: '💧', category: 'hydration', options: ['0', '1-2', '3-4', '5-6', '7+'] },
   { id: 'electrolytes', label: 'Electrolytes', emoji: '⚡', category: 'hydration', options: ['None', 'LMNT', 'Liquid IV', 'Nuun', 'Other'] },
-  { id: 'caffeine_cups', label: 'Caffeine (cups)', emoji: '☕', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
-  { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', options: ['Coffee', 'Tea', 'Energy Drink', 'Soda'] },
   { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
   { id: 'stress_level', label: 'Stress Level', emoji: '😰', category: 'mental', options: ['A little', 'Moderate', 'Very'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'What\'s causing stress?' },
 
