@@ -23,7 +23,7 @@ type Props = {
   disabledCards?: string[];
 };
 
-const PICKERS_PER_PAGE = 3;
+const PICKERS_PER_PAGE = 4;
 
 export default function SwipeQuestionnaire({
   onComplete,
