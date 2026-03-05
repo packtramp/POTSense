@@ -48,7 +48,8 @@
 | **Push** | expo-notifications + FCM/APNs | Native push notifications |
 | **Hosting (Web)** | Vercel | Web app + serverless API routes |
 | **PDF** | expo-print + expo-sharing | Doctor report generation |
-| **Charts** | react-native-chart-kit or victory-native | Trends visualizations |
+| **Charts** | react-native-svg (custom SVG) | Pressure charts, trend visualizations |
+| **Clipboard** | expo-clipboard | Social share copy-to-clipboard |
 | **Deployment** | EAS Build + EAS Submit | iOS/Android builds + app store submission |
 
 ---

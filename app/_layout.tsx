@@ -80,6 +80,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="feedback"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
           name="partner-settings"
           options={{
             presentation: 'modal',

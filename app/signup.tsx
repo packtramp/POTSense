@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signUp, AccountRole } from '@/lib/auth';
+import { resolveReferralCode, recordReferral } from '@/lib/referrals';
 import { Colors } from '@/constants/Colors';
 
 export default function SignUpScreen() {
@@ -13,6 +14,27 @@ export default function SignUpScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [referrerUid, setReferrerUid] = useState<string | null>(null);
+
+  // Check for referral code in URL on mount
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref');
+        if (ref) {
+          // Also save to localStorage so it persists to signup page
+          localStorage.setItem('potsense_ref', ref);
+        }
+        const savedRef = ref || localStorage.getItem('potsense_ref');
+        if (savedRef) {
+          resolveReferralCode(savedRef).then((uid) => {
+            if (uid) setReferrerUid(uid);
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+  }, []);
 
   const handleSignUp = async () => {
     if (!displayName.trim() || !email.trim() || !password) {
@@ -30,7 +52,14 @@ export default function SignUpScreen() {
     setError('');
     setLoading(true);
     try {
-      await signUp(email.trim(), password, displayName.trim(), role, inviteCode.trim() || undefined);
+      const user = await signUp(email.trim(), password, displayName.trim(), role, inviteCode.trim() || undefined);
+      // Record referral if applicable
+      if (referrerUid && user.uid !== referrerUid) {
+        recordReferral(user.uid, referrerUid).catch(() => {});
+        if (Platform.OS === 'web') {
+          try { localStorage.removeItem('potsense_ref'); } catch {}
+        }
+      }
       // Auth state listener handles navigation
     } catch (err: any) {
       setError(err.message?.includes('email-already') ? 'Email already in use.' : 'Sign up failed. Try again.');

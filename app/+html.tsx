@@ -34,12 +34,22 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta name="twitter:description" content="Auto barometric pressure capture + episode correlation. Free for iOS, Android, and Web." />
         <meta name="twitter:image" content="https://www.potsense.org/og-image.png" />
         <ScrollViewStyleReset />
+        <script dangerouslySetInnerHTML={{ __html: refCaptureScript }} />
         <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
       </head>
       <body>{children}</body>
     </html>
   );
 }
+
+// Capture ?ref= param on first page load and save to localStorage
+const refCaptureScript = `
+try {
+  var p = new URLSearchParams(window.location.search);
+  var r = p.get('ref');
+  if (r) localStorage.setItem('potsense_ref', r);
+} catch(e) {}
+`;
 
 const globalStyles = `
 body {

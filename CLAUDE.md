@@ -52,11 +52,11 @@ POTS episode tracker with auto barometric pressure capture, Tinder-style swipe q
 3. ~~Swipe Questionnaire (50+ cards, 8 categories, branching, settings toggles)~~ DONE
 4. ~~Daily Trackers (tap-to-cycle on Home, Firestore dailyLogs)~~ DONE
 5. ~~News Feed (4 RSS sources — Dysautonomia Intl, Dysautonomia Project, PoTS UK, Cleveland Clinic)~~ DONE
-6. Partner accounts + invite codes
+6. ~~Partner accounts + invite codes~~ DONE
 7. Premium + RevenueCat + Stripe + feature gating
-8. History screen (timeline free, calendar premium, rich cards)
-9. Trends + charts + percentage-based correlations
-10. Doctor PDF report (free 30d auto-email + premium custom range)
+8. ~~History screen (tappable cards → episode detail modal with delete)~~ DONE
+9. ~~Trends + charts (5 swipeable cards: pressure/episodes, severity, triggers, time-of-day, frequency)~~ DONE
+10. ~~Doctor PDF report (date range selector, episode table, trigger analysis, pressure correlation)~~ DONE
 11. Notifications (push + Resend email + cron jobs)
 12. Onboarding + guided tour + polish
 13. App store submission (iOS + Android)
@@ -73,12 +73,17 @@ POTS episode tracker with auto barometric pressure capture, Tinder-style swipe q
 ## Key Files
 - `lib/firebase.ts` — Simple init (no persistence APIs — causes Symbol error on web)
 - `lib/auth.ts` — Auth helpers (signUp creates user doc with role/settings)
-- `lib/weather.ts` — Open-Meteo client (pressure, temp, humidity, 3h trend)
+- `lib/weather.ts` — Open-Meteo client (pressure, temp, humidity, 3h trend, historical hourly)
 - `lib/admin.ts` — Admin email check
+- `lib/partners.ts` — Partner invite codes, link/unlink, role detection
 - `constants/swipeCards.ts` — 50+ config-driven cards, 8 categories, branching
 - `constants/Colors.ts` — Dark theme palette
 - `components/SwipeQuestionnaire.tsx` — Card UI with progress, branching, skip
+- `components/PressureChart.tsx` — SVG pressure chart with episode dots overlay
+- `app/episode-detail.tsx` — Full episode view with delete
+- `app/pdf-export.tsx` — Doctor PDF report generation
+- `app/partner-settings.tsx` — Partner invite/link management
 - `app/questionnaire-settings.tsx` — Toggle categories/individual cards
 
 ## Current Status
-**Phase:** Phases 1-5 COMPLETE. Next: Phase 6 (Partner accounts + invite codes).
+**Phase:** Phases 1-10 COMPLETE (except 7: Premium/RevenueCat). Next: Phase 7 (Premium + RevenueCat) or Phase 11 (Notifications).

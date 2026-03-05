@@ -133,3 +133,57 @@ All changes live at potsense.org
 
 ### Status
 Phases 1-5 COMPLETE. Next: Phase 6 (Partner accounts + invite codes).
+
+## Session 4 — 2026-03-05 (cont)
+
+### Social Share Buttons (Home Screen)
+- Added row of social share icons above daily trackers: Facebook, X, Instagram, Reddit, Mail, Copy
+- Instagram/Facebook: copy share text to clipboard + alert + open platform (no text pre-fill API)
+- X: intent/tweet URL with pre-filled text + URL
+- Reddit: submit URL with pre-filled title
+- Removed TikTok per Roby
+- Share text: "Found this great POTS app to help track dysautonomia episodes and triggers! Check it out at www.POTSense.org"
+
+### Open Graph / Twitter Cards
+- Added og:title, og:description, og:image, og:url to `+html.tsx`
+- Added twitter:card summary_large_image tags
+- Generated 1200x630 og-image.png via sharp (Facebook rejects SVG)
+
+### Trends Screen (5 Swipeable Cards)
+- Card 1: Pressure & Episodes — continuous hourly pressure line (Open-Meteo historical, up to 92 days) with episode dots overlaid by severity color
+- Card 2: Severity Breakdown — distribution bars (1-5 scale)
+- Card 3: Top Triggers — questionnaire answer frequency analysis
+- Card 4: Time of Day — episode distribution chart
+- Card 5: Episode Frequency — daily/weekly bar chart
+- Range selector: 7D / 30D / 90D / All
+- Pressure correlation insight: "X% of episodes during pressure drops"
+- Built `components/PressureChart.tsx` (SVG, Catmull-Rom curves, severity-colored dots, tap tooltip)
+- Built `lib/weather.ts:fetchHistoricalPressure()` — on-demand historical hourly data
+
+### Episode Detail Screen
+- New `app/episode-detail.tsx` — full episode view modal
+- Shows severity (emoji + color bar), date/time, weather (pressure/trend/temp/humidity), symptom chips, notes, questionnaire key-value pairs
+- Delete with confirmation (window.confirm on web, Alert.alert on native)
+- History tab cards now tappable → navigate to detail with chevron indicator
+
+### Doctor PDF Export
+- New `app/pdf-export.tsx` — date range selector (7/30/90/All), live preview stats, generate PDF
+- PDF includes: header, patient summary, full episode table, top triggers with percentages, weather correlation breakdown, footer
+- Uses expo-print (HTML→PDF) + expo-sharing (share dialog)
+- Wired from Settings → Data → "Export PDF Report"
+
+### Partner Accounts (Phase 6)
+- New `lib/partners.ts` — generateInviteCode, redeemInviteCode, getLinkedPartners, getLinkedPatient, unlinkPartner, getUserRole
+- 6-digit alphanumeric codes (no ambiguous chars I/O/1/0), stored at `inviteCodes/{code}`, 24h expiry
+- New `app/partner-settings.tsx` — patient mode (generate code, list partners, unlink) + partner mode (enter code, show linked patient, unlink)
+- Episode modal updated: partners log to patient's Firestore collection with loggedBy/loggedByEmail fields
+- Wired from Settings → Account → Partners
+
+### Deploy Config
+- Created `docs/DEPLOY-CONFIG.md` — quick deploy reference, project links, troubleshooting
+
+### Packages Added
+- react-native-svg, expo-clipboard, expo-print, expo-sharing
+
+### Status
+Phases 1-6, 8-10 COMPLETE. Next: Phase 7 (Premium + RevenueCat) or Phase 11 (Notifications).

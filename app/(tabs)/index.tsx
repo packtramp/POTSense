@@ -7,80 +7,92 @@ import { collection, query, orderBy, limit, getDocs, where, Timestamp, doc, getD
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescription } from '@/lib/weather';
+import { getUserReferralCode } from '@/lib/referrals';
 import { Alert, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Colors } from '@/constants/Colors';
 
-const SHARE_TEXT = "Found this great POTS app to help track dysautonomia episodes and triggers! Check it out at www.POTSense.org";
-const SHARE_URL = 'https://www.potsense.org';
-
-async function handleInstagramShare() {
-  // Instagram doesn't support pre-filled text sharing from web.
-  // Copy share text to clipboard, then open Instagram so they can paste it.
-  try {
-    await Clipboard.setStringAsync(SHARE_TEXT);
-  } catch {}
-  if (Platform.OS === 'web') {
-    window.alert('Share text copied to clipboard! Opening Instagram — paste it in your post or story.');
-  } else {
-    Alert.alert('Copied!', 'Share text copied to clipboard. Opening Instagram — paste it in your post or story.');
-  }
-  Linking.openURL('https://www.instagram.com/');
+function getShareText(refCode: string | null) {
+  const url = refCode ? `www.POTSense.org/?ref=${refCode}` : 'www.POTSense.org';
+  return `Found this great POTS app to help track dysautonomia episodes and triggers! Check it out at ${url}`;
 }
 
-const SOCIAL_LINKS = [
-  {
-    key: 'facebook',
-    icon: 'logo-facebook' as const,
-    color: '#1877F2',
-    onPress: async () => {
-      try { await Clipboard.setStringAsync(SHARE_TEXT); } catch {}
-      if (Platform.OS === 'web') {
-        window.alert('Share text copied! Paste it in your Facebook post.');
-      } else {
-        Alert.alert('Copied!', 'Share text copied! Paste it in your Facebook post.');
-      }
-      Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`);
+function getShareUrl(refCode: string | null) {
+  return refCode ? `https://www.potsense.org/?ref=${refCode}` : 'https://www.potsense.org';
+}
+
+function getSocialLinks(refCode: string | null) {
+  const shareText = getShareText(refCode);
+  const shareUrl = getShareUrl(refCode);
+
+  return [
+    {
+      key: 'facebook',
+      icon: 'logo-facebook' as const,
+      color: '#1877F2',
+      onPress: async () => {
+        try { await Clipboard.setStringAsync(shareText); } catch {}
+        if (Platform.OS === 'web') {
+          window.alert('Share text copied! Paste it in your Facebook post.');
+        } else {
+          Alert.alert('Copied!', 'Share text copied! Paste it in your Facebook post.');
+        }
+        Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
+      },
     },
-  },
-  {
-    key: 'x',
-    icon: 'logo-twitter' as const,
-    color: '#fff',
-    onPress: () => Linking.openURL(`https://x.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`),
-  },
-  {
-    key: 'instagram',
-    icon: 'logo-instagram' as const,
-    color: '#E4405F',
-    onPress: handleInstagramShare,
-  },
-  {
-    key: 'reddit',
-    icon: 'logo-reddit' as const,
-    color: '#FF4500',
-    onPress: () => Linking.openURL(`https://www.reddit.com/submit?url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TEXT)}`),
-  },
-  {
-    key: 'mail',
-    icon: 'mail' as const,
-    color: '#4FC3F7',
-    onPress: () => Linking.openURL(`mailto:?subject=${encodeURIComponent('Check out POTSense!')}&body=${encodeURIComponent(SHARE_TEXT)}`),
-  },
-  {
-    key: 'copy',
-    icon: 'copy' as const,
-    color: '#A0A0A0',
-    onPress: async () => {
-      try { await Clipboard.setStringAsync(SHARE_TEXT); } catch {}
-      if (Platform.OS === 'web') {
-        window.alert('Share text copied to clipboard!');
-      } else {
-        Alert.alert('Copied!', 'Share text copied to clipboard.');
-      }
+    {
+      key: 'x',
+      icon: 'logo-twitter' as const,
+      color: '#fff',
+      onPress: () => Linking.openURL(`https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`),
     },
-  },
-];
+    {
+      key: 'instagram',
+      icon: 'logo-instagram' as const,
+      color: '#E4405F',
+      onPress: async () => {
+        try { await Clipboard.setStringAsync(shareText); } catch {}
+        if (Platform.OS === 'web') {
+          window.alert('Share text copied to clipboard! Opening Instagram — paste it in your post or story.');
+        } else {
+          Alert.alert('Copied!', 'Share text copied to clipboard. Opening Instagram — paste it in your post or story.');
+        }
+        Linking.openURL('https://www.instagram.com/');
+      },
+    },
+    {
+      key: 'reddit',
+      icon: 'logo-reddit' as const,
+      color: '#FF4500',
+      onPress: () => Linking.openURL(`https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`),
+    },
+    {
+      key: 'sms',
+      icon: 'chatbubble-outline' as const,
+      color: '#66BB6A',
+      onPress: () => Linking.openURL(`sms:?body=${encodeURIComponent(shareText)}`),
+    },
+    {
+      key: 'mail',
+      icon: 'mail' as const,
+      color: '#4FC3F7',
+      onPress: () => Linking.openURL(`mailto:?subject=${encodeURIComponent('Check out POTSense!')}&body=${encodeURIComponent(shareText)}`),
+    },
+    {
+      key: 'copy',
+      icon: 'copy' as const,
+      color: '#A0A0A0',
+      onPress: async () => {
+        try { await Clipboard.setStringAsync(shareText); } catch {}
+        if (Platform.OS === 'web') {
+          window.alert('Share text copied to clipboard!');
+        } else {
+          Alert.alert('Copied!', 'Share text copied to clipboard.');
+        }
+      },
+    },
+  ];
+}
 
 const DAILY_TRACKERS = [
   { key: 'water', emoji: '💧', label: 'Water', levels: ['--', 'Low', 'Med', 'High'] },
@@ -103,13 +115,18 @@ export default function HomeScreen() {
   const [weekCount, setWeekCount] = useState(0);
   const [lastEpisode, setLastEpisode] = useState<string>('--');
   const [trackerValues, setTrackerValues] = useState<Record<string, string>>({});
+  const [refCode, setRefCode] = useState<string | null>(null);
 
-  // Fetch weather on mount
+  // Fetch weather + referral code on mount
   useEffect(() => {
     getWeatherForCurrentLocation().then((w) => {
       setWeather(w);
       setWeatherLoading(false);
     });
+    const user = getCurrentUser();
+    if (user) {
+      getUserReferralCode(user.uid).then(setRefCode).catch(() => {});
+    }
   }, []);
 
   // Refresh episode stats + daily log when tab is focused
@@ -237,7 +254,7 @@ export default function HomeScreen() {
       {/* Share / Community */}
       <Text style={styles.shareLabel}>Share POTSense</Text>
       <View style={styles.socialRow}>
-        {SOCIAL_LINKS.map((s) => (
+        {getSocialLinks(refCode).map((s) => (
           <Pressable
             key={s.key}
             style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
