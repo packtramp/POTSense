@@ -37,6 +37,7 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet' },
 
   // Sleep
+  { id: 'good_sleep', label: 'Good Sleep', emoji: '😴', category: 'sleep' },
   { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep' },
   { id: 'head_elevated', label: 'Head Elevated', emoji: '🛏️', category: 'sleep' },
 
@@ -90,7 +91,6 @@ export const QUANTITY_PICKERS: QuantityPicker[] = [
   { id: 'caffeine_cups', label: 'Caffeine (cups)', emoji: '☕', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
   { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', options: ['Coffee', 'Tea', 'Energy Drink', 'Soda'] },
   { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', options: ['0', '1', '2', '3', '4+'] },
-  { id: 'sleep_quality', label: 'Sleep Quality', emoji: '😴', category: 'sleep', options: ['Bad', 'OK', 'Good'] },
   { id: 'sleep_hours', label: 'Sleep Hours', emoji: '🕐', category: 'sleep', options: ['< 4 hrs', '4-5 hrs', '6-7 hrs', '8+ hrs'] },
   { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', options: ['None', 'Light', 'Moderate', 'Intense'] },
   { id: 'stress', label: 'Stress Level', emoji: '😰', category: 'mental', options: ['None', 'A little', 'Moderate', 'Very'] },
