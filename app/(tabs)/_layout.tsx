@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router';
+import { Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { APP_VERSION } from '@/constants/version';
 
 type TabIcon = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -18,6 +20,11 @@ export default function TabLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: Colors.background },
         headerTintColor: Colors.text,
+        headerRight: () => (
+          <Text style={{ color: Colors.textMuted, fontSize: 11, marginRight: 14 }}>
+            v{APP_VERSION}
+          </Text>
+        ),
         tabBarStyle: {
           backgroundColor: Colors.tabBarBg,
           borderTopColor: Colors.border,
