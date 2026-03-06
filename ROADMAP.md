@@ -8,45 +8,26 @@ Closed: #2 (time picker), #9 (duplicate), #10 (chip wrap fix)
 
 ---
 
-## v0.x Polish
-**Milestone:** [v0.x Polish (#2)](https://github.com/packtramp/POTSense/milestone/2)
+## Path to App Store (in order)
 
-- [ ] #3 — Firebase service account + cron for weekly email summary
-- [ ] #4 — Integrate RevenueCat for subscription management
-- [ ] #5 — Background pressure monitoring + push notifications
-- [ ] #7 — Pressure-change correlation stat on trends dashboard
-
----
-
-## Partner Accounts
-**Milestone:** [Partner Accounts (#3)](https://github.com/packtramp/POTSense/milestone/3) | **Issue:** [#1](https://github.com/packtramp/POTSense/issues/1)
-
-- [ ] Partner invite flow (patient generates code)
-- [ ] Partner links to patient via code
-- [ ] Partner dashboard (read-only episodes + daily trackers)
-- [ ] Partner notifications on new episodes (optional)
-- [ ] Unlink partner flow
-
----
-
-## v1.0 Release (App Store Launch)
-**Milestones:** [v1.0 release (#1)](https://github.com/packtramp/POTSense/milestone/1) + [App Store Launch (#4)](https://github.com/packtramp/POTSense/milestone/4)
-
-All features ready → submit to stores. This is the finish line.
-
-- [ ] #8 — Onboarding flow (2-3 screens)
-- [ ] #6 — App Store + Google Play submission prep
-- [ ] #11 — App icon + splash screen
-- [ ] #12 — Privacy policy page
-- [ ] #13 — EAS Build setup (native modules)
-- [ ] #14 — App store screenshots + descriptions
-- [ ] Peer review (full codebase audit before launch)
+1. [ ] #13 — EAS Build setup (native modules — prerequisite for RevenueCat + push notifications)
+2. [ ] #4 — Integrate RevenueCat for subscription management
+3. [ ] #1 — Partner accounts (invite flow, link/unlink, dashboard, notifications)
+4. [ ] #5 — Background pressure monitoring + push notifications
+5. [ ] #3 — Firebase service account + cron for weekly email summary
+6. [ ] #7 — Pressure-change correlation stat on trends dashboard
+7. [ ] #8 — Onboarding flow (2-3 screens)
+8. [ ] #11 — App icon + splash screen
+9. [ ] #12 — Privacy policy page
+10. [ ] Peer review (full codebase audit)
+11. [ ] #14 — App store screenshots + descriptions
+12. [ ] #6 — App Store + Google Play submission → v1.0
 
 ---
 
 ## Post-Launch (v2.0+)
 
-- Partner account switching (both partners have POTS — rare case)
+- Partner account switching (both partners have POTS)
 - Cloud sync / account backup
 - CSV export (premium)
 - Custom triggers (user-defined)
