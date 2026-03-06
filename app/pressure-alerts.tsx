@@ -12,6 +12,7 @@ function alert(title: string, message: string) {
   else require('react-native').Alert.alert(title, message);
 }
 
+const HPA_TO_INHG = 0.02953;
 const THRESHOLDS = [3, 5, 7, 10];
 
 export default function PressureAlerts() {
@@ -21,14 +22,20 @@ export default function PressureAlerts() {
   const [threshold, setThreshold] = useState(5);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pressureUnit, setPressureUnit] = useState<'inHg' | 'hPa'>('inHg');
 
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, 'users', user.uid)).then((snap) => {
       if (snap.exists()) {
-        const notifs = snap.data().settings?.notifications;
-        if (notifs?.pressureAlerts !== undefined) setEnabled(notifs.pressureAlerts);
-        if (notifs?.pressureThreshold) setThreshold(notifs.pressureThreshold);
+        const data = snap.data();
+        const pa = data.settings?.pressureAlerts;
+        const notifs = data.settings?.notifications;
+        if (pa?.enabled !== undefined) setEnabled(pa.enabled);
+        else if (notifs?.pressureAlerts !== undefined) setEnabled(notifs.pressureAlerts);
+        if (pa?.threshold) setThreshold(pa.threshold);
+        else if (notifs?.pressureThreshold) setThreshold(notifs.pressureThreshold);
+        if (data.settings?.units?.pressure) setPressureUnit(data.settings.units.pressure);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -93,24 +100,31 @@ export default function PressureAlerts() {
           </View>
 
           <View style={[styles.section, !enabled && { opacity: 0.4 }]}>
-            <Text style={styles.sectionTitle}>THRESHOLD (hPa / 3 hours)</Text>
+            <Text style={styles.sectionTitle}>
+              THRESHOLD ({pressureUnit === 'inHg' ? 'inHg' : 'hPa'} / 3 hours)
+            </Text>
             <View style={styles.sectionCard}>
-              {THRESHOLDS.map((val, i) => (
-                <Pressable
-                  key={val}
-                  style={[styles.row, i < THRESHOLDS.length - 1 && styles.rowBorder]}
-                  onPress={() => enabled && pickThreshold(val)}
-                  disabled={!enabled}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowLabel}>{val} hPa</Text>
-                    <Text style={styles.rowDetail}>
-                      {val <= 3 ? 'Very sensitive' : val <= 5 ? 'Recommended' : val <= 7 ? 'Moderate' : 'Less sensitive'}
-                    </Text>
-                  </View>
-                  {threshold === val && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}
-                </Pressable>
-              ))}
+              {THRESHOLDS.map((val, i) => {
+                const display = pressureUnit === 'inHg'
+                  ? `${(val * HPA_TO_INHG).toFixed(2)} inHg`
+                  : `${val} hPa`;
+                return (
+                  <Pressable
+                    key={val}
+                    style={[styles.row, i < THRESHOLDS.length - 1 && styles.rowBorder]}
+                    onPress={() => enabled && pickThreshold(val)}
+                    disabled={!enabled}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowLabel}>{display}</Text>
+                      <Text style={styles.rowDetail}>
+                        {val <= 3 ? 'Very sensitive' : val <= 5 ? 'Recommended' : val <= 7 ? 'Moderate' : 'Less sensitive'}
+                      </Text>
+                    </View>
+                    {threshold === val && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
 

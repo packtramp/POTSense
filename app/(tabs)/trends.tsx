@@ -1,20 +1,23 @@
 import { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { Colors } from '@/constants/Colors';
 import PressureChart, { PressurePoint } from '@/components/PressureChart';
 import { getCurrentLocation, fetchHistoricalPressure, HourlyPressure } from '@/lib/weather';
 
-type RangeKey = '7d' | '30d' | '90d' | 'all';
-const RANGES: { key: RangeKey; label: string; days: number }[] = [
+type RangeKey = '7d' | '30d' | '90d' | 'ytd' | '1y' | 'all';
+const RANGES: { key: RangeKey; label: string; days: number; premium?: boolean }[] = [
   { key: '7d', label: '7D', days: 7 },
   { key: '30d', label: '30D', days: 30 },
-  { key: '90d', label: '90D', days: 90 },
-  { key: 'all', label: 'All', days: 9999 },
+  { key: '90d', label: '90D', days: 90, premium: true },
+  { key: 'ytd', label: 'YTD', days: 0, premium: true }, // calculated dynamically
+  { key: '1y', label: '1Y', days: 365, premium: true },
+  { key: 'all', label: 'All', days: 9999, premium: true },
 ];
 
 const SEVERITY_EMOJIS = ['😕', '😐', '😟', '😣', '😵'];
@@ -47,9 +50,11 @@ const CARD_TITLES = [
 
 export default function TrendsScreen() {
   const { width: screenW } = useWindowDimensions();
+  const router = useRouter();
   const [range, setRange] = useState<RangeKey>('30d');
   const [episodes, setEpisodes] = useState<EpisodeData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
   const [activeCard, setActiveCard] = useState(0);
   const [hourlyPressure, setHourlyPressure] = useState<HourlyPressure[]>([]);
   const [pressureDrill, setPressureDrill] = useState<'drops' | 'rises' | 'stable' | null>(null);
@@ -64,6 +69,12 @@ export default function TrendsScreen() {
       if (!user) return;
 
       setLoading(true);
+
+      // Check premium status
+      getDoc(doc(db, 'users', user.uid)).then((snap) => {
+        if (snap.exists() && snap.data()?.premiumStatus === 'premium') setIsPremium(true);
+      }).catch(() => {});
+
       const episodesRef = collection(db, 'patients', user.uid, 'episodes');
 
       // Fetch episodes
@@ -111,8 +122,13 @@ export default function TrendsScreen() {
 
   // Filter by range
   const cutoff = new Date();
-  const rangeDays = RANGES.find((r) => r.key === range)?.days || 30;
-  cutoff.setDate(cutoff.getDate() - rangeDays);
+  if (range === 'ytd') {
+    cutoff.setMonth(0, 1);
+    cutoff.setHours(0, 0, 0, 0);
+  } else {
+    const rangeDays = RANGES.find((r) => r.key === range)?.days || 30;
+    cutoff.setDate(cutoff.getDate() - rangeDays);
+  }
   const filtered = range === 'all' ? episodes : episodes.filter((e) => e.timestamp >= cutoff);
 
   // Pressure chart data
@@ -258,17 +274,21 @@ export default function TrendsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Range selector */}
       <View style={styles.rangeRow}>
-        {RANGES.map((r) => (
-          <Pressable
-            key={r.key}
-            style={[styles.rangeBtn, range === r.key && styles.rangeBtnActive]}
-            onPress={() => setRange(r.key)}
-          >
-            <Text style={[styles.rangeBtnText, range === r.key && styles.rangeBtnTextActive]}>
-              {r.label}
-            </Text>
-          </Pressable>
-        ))}
+        {RANGES.map((r) => {
+          const locked = r.premium && !isPremium;
+          return (
+            <Pressable
+              key={r.key}
+              style={[styles.rangeBtn, range === r.key && styles.rangeBtnActive, locked && styles.rangeBtnLocked]}
+              onPress={() => locked ? router.push('/subscription') : setRange(r.key)}
+            >
+              <Text style={[styles.rangeBtnText, range === r.key && styles.rangeBtnTextActive, locked && styles.rangeBtnTextLocked]}>
+                {r.label}
+              </Text>
+              {locked && <Ionicons name="lock-closed" size={10} color={Colors.textMuted} style={{ marginLeft: 2 }} />}
+            </Pressable>
+          );
+        })}
         <View style={{ flex: 1 }} />
         <Text style={styles.episodeCount}>{filtered.length} episodes</Text>
       </View>
@@ -516,8 +536,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border,
   },
   rangeBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  rangeBtnLocked: { opacity: 0.5 },
   rangeBtnText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600' },
   rangeBtnTextActive: { color: Colors.text },
+  rangeBtnTextLocked: { color: Colors.textMuted },
   episodeCount: { color: Colors.textMuted, fontSize: 12 },
 
   card: {

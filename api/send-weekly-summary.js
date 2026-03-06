@@ -57,64 +57,32 @@ module.exports = async (req, res) => {
       // Skip if no episodes this week
       if (episodes.length === 0) { skipped++; continue; }
 
-      // Build summary stats
-      const count = episodes.length;
-      const avgSeverity = (episodes.reduce((s, e) => s + (e.severity || 3), 0) / count).toFixed(1);
-      const maxSeverity = Math.max(...episodes.map((e) => e.severity || 3));
-
-      // Top triggers (from questionnaire toggles)
+      // Collect symptoms and triggers
+      const symptomCounts = {};
       const triggerCounts = {};
       for (const ep of episodes) {
+        if (ep.symptoms) {
+          for (const s of ep.symptoms) symptomCounts[s] = (symptomCounts[s] || 0) + 1;
+        }
         if (ep.questionnaire?.toggles) {
           for (const [key, val] of Object.entries(ep.questionnaire.toggles)) {
             if (val === true) triggerCounts[key] = (triggerCounts[key] || 0) + 1;
           }
         }
       }
-      const topTriggers = Object.entries(triggerCounts)
+      const symptoms = Object.entries(symptomCounts)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([key, ct]) => ({ name: formatTriggerName(key), count: ct }));
-
-      // Pressure stats
-      const pressureEpisodes = episodes.filter((e) => e.weather?.pressure);
-      const avgPressure = pressureEpisodes.length > 0
-        ? (pressureEpisodes.reduce((s, e) => s + e.weather.pressure, 0) / pressureEpisodes.length).toFixed(1)
-        : null;
-      const pressureDropCount = pressureEpisodes.filter(
-        (e) => e.weather?.pressureChange3h && e.weather.pressureChange3h < -2
-      ).length;
-      const pressureCorrelation = pressureEpisodes.length > 0
-        ? Math.round((pressureDropCount / pressureEpisodes.length) * 100)
-        : null;
-
-      // Severity distribution
-      const severityDist = [0, 0, 0, 0, 0];
-      for (const ep of episodes) severityDist[(ep.severity || 3) - 1]++;
-
-      // Top symptoms
-      const symptomCounts = {};
-      for (const ep of episodes) {
-        if (ep.symptoms) {
-          for (const s of ep.symptoms) symptomCounts[s] = (symptomCounts[s] || 0) + 1;
-        }
-      }
-      const topSymptoms = Object.entries(symptomCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
         .map(([name, ct]) => ({ name, count: ct }));
+      const triggers = Object.entries(triggerCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([key, ct]) => ({ name: formatTriggerName(key), count: ct }));
 
       // Build email HTML
       const html = buildEmailHtml({
         displayName: userData.displayName || 'there',
-        count,
-        avgSeverity,
-        maxSeverity,
-        topTriggers,
-        topSymptoms,
-        avgPressure,
-        pressureCorrelation,
-        severityDist,
+        episodes,
+        symptoms,
+        triggers,
         weekStart: weekAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         weekEnd: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       });
@@ -123,7 +91,7 @@ module.exports = async (req, res) => {
         await resend.emails.send({
           from: 'POTSense <summary@potsense.org>',
           to: userData.email,
-          subject: `Your Weekly POTS Summary — ${count} episode${count !== 1 ? 's' : ''} this week`,
+          subject: `Weekly POTS Report — ${episodes.length} episode${episodes.length !== 1 ? 's' : ''} (${weekAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`,
           html,
         });
         sent++;
@@ -145,100 +113,91 @@ function formatTriggerName(key) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function severityEmoji(sev) {
-  return ['😕', '😐', '😟', '😣', '😵'][Math.min(Math.max(sev, 1), 5) - 1];
+function formatDateTime(ts) {
+  if (!ts) return 'Unknown';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  });
 }
 
-function severityBar(dist) {
-  const max = Math.max(...dist, 1);
-  const colors = ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#EF5350'];
-  return dist
-    .map((ct, i) => {
-      const pct = Math.round((ct / max) * 100);
-      return `<div style="display:flex;align-items:center;gap:8px;margin:2px 0">
-        <span style="width:20px;text-align:center">${i + 1}</span>
-        <div style="flex:1;background:#2a2a3a;border-radius:4px;height:18px;overflow:hidden">
-          <div style="width:${pct}%;background:${colors[i]};height:100%;border-radius:4px"></div>
-        </div>
-        <span style="width:24px;text-align:right;color:#999;font-size:12px">${ct}</span>
-      </div>`;
-    })
-    .join('');
-}
+function buildEmailHtml({ displayName, episodes, symptoms, triggers, weekStart, weekEnd }) {
+  // Episode log table rows
+  const episodeRows = episodes.map((ep) => {
+    const date = formatDateTime(ep.timestamp);
+    const severity = ep.severity || '—';
+    const pressure = ep.weather?.pressure
+      ? `${ep.weather.pressure.toFixed(1)} hPa (${(ep.weather.pressure * 0.02953).toFixed(2)} inHg)`
+      : '—';
+    const trend = ep.weather?.pressureChange3h
+      ? `${ep.weather.pressureChange3h > 0 ? '+' : ''}${ep.weather.pressureChange3h.toFixed(1)} hPa/3h`
+      : '';
+    const epSymptoms = (ep.symptoms || []).join(', ') || '—';
+    return `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #333;color:#ccc;font-size:13px;white-space:nowrap">${date}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #333;color:#FFC107;font-size:13px;text-align:center">${severity}/5</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #333;color:#ccc;font-size:12px">${pressure}${trend ? `<br/><span style="color:#888;font-size:11px">${trend}</span>` : ''}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #333;color:#ccc;font-size:12px">${epSymptoms}</td>
+    </tr>`;
+  }).join('');
 
-function buildEmailHtml({ displayName, count, avgSeverity, maxSeverity, topTriggers, topSymptoms, avgPressure, pressureCorrelation, severityDist, weekStart, weekEnd }) {
-  const triggersHtml = topTriggers.length > 0
-    ? topTriggers.map((t) => `<li style="padding:4px 0">${t.name} <span style="color:#6C8EBF">(${t.count}x)</span></li>`).join('')
-    : '<li style="color:#666">No triggers recorded</li>';
+  // Symptoms summary
+  const symptomsHtml = symptoms.length > 0
+    ? symptoms.map((s) => `<span style="display:inline-block;background:#2a2a3a;border-radius:4px;padding:3px 8px;margin:2px;font-size:12px;color:#ccc">${s.name} <span style="color:#6C8EBF">(${s.count})</span></span>`).join('')
+    : '<span style="color:#666;font-size:12px">None recorded</span>';
 
-  const symptomsHtml = topSymptoms.length > 0
-    ? topSymptoms.map((s) => `<li style="padding:4px 0">${s.name} <span style="color:#6C8EBF">(${s.count}x)</span></li>`).join('')
-    : '<li style="color:#666">No symptoms recorded</li>';
-
-  const pressureSection = avgPressure
-    ? `<div style="background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:16px;margin-bottom:16px">
-        <h3 style="color:#6C8EBF;margin:0 0 8px">🌡️ Pressure Insights</h3>
-        <p style="color:#ccc;margin:4px 0">Average pressure: <strong>${avgPressure} hPa</strong> (${(avgPressure * 0.02953).toFixed(2)} inHg)</p>
-        ${pressureCorrelation !== null ? `<p style="color:#ccc;margin:4px 0"><strong style="color:#FF9800">${pressureCorrelation}%</strong> of your episodes occurred during pressure drops (>2 hPa/3h)</p>` : ''}
-      </div>`
-    : '';
+  // Triggers summary
+  const triggersHtml = triggers.length > 0
+    ? triggers.map((t) => `<span style="display:inline-block;background:#2a2a3a;border-radius:4px;padding:3px 8px;margin:2px;font-size:12px;color:#ccc">${t.name} <span style="color:#6C8EBF">(${t.count})</span></span>`).join('')
+    : '<span style="color:#666;font-size:12px">None recorded</span>';
 
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#121218;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-  <div style="max-width:520px;margin:0 auto;padding:24px 16px">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px">
     <!-- Header -->
-    <div style="text-align:center;margin-bottom:24px">
-      <h1 style="color:#6C8EBF;margin:0;font-size:24px">POTSense</h1>
-      <p style="color:#888;margin:4px 0;font-size:13px">Weekly Summary · ${weekStart} – ${weekEnd}</p>
+    <div style="text-align:center;margin-bottom:20px">
+      <h1 style="color:#6C8EBF;margin:0;font-size:22px">POTSense — Weekly Report</h1>
+      <p style="color:#888;margin:4px 0;font-size:13px">${weekStart} – ${weekEnd}</p>
     </div>
 
-    <!-- Greeting -->
-    <p style="color:#e0e0e0;font-size:15px">Hi ${displayName},</p>
-    <p style="color:#ccc;font-size:14px">Here's your POTS tracking summary for the past week.</p>
+    <p style="color:#e0e0e0;font-size:14px;margin-bottom:16px">Hi ${displayName}, here is your episode summary for the past week. You can share this with your healthcare provider.</p>
 
-    <!-- Stats Row -->
-    <div style="display:flex;gap:10px;margin-bottom:16px">
-      <div style="flex:1;background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:14px;text-align:center">
-        <div style="color:#6C8EBF;font-size:28px;font-weight:700">${count}</div>
-        <div style="color:#888;font-size:11px">EPISODES</div>
+    <!-- Episode Log -->
+    <div style="background:#1e1e2e;border:1px solid #333;border-radius:10px;overflow:hidden;margin-bottom:16px">
+      <div style="padding:12px 14px;border-bottom:1px solid #333">
+        <h3 style="color:#e0e0e0;margin:0;font-size:14px">Episode Log (${episodes.length} total)</h3>
       </div>
-      <div style="flex:1;background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:14px;text-align:center">
-        <div style="color:#FFC107;font-size:28px;font-weight:700">${avgSeverity}</div>
-        <div style="color:#888;font-size:11px">AVG SEVERITY</div>
-      </div>
-      <div style="flex:1;background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:14px;text-align:center">
-        <div style="font-size:28px">${severityEmoji(maxSeverity)}</div>
-        <div style="color:#888;font-size:11px">WORST: ${maxSeverity}/5</div>
-      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:#252535">
+            <th style="padding:8px 10px;text-align:left;color:#888;font-size:11px;font-weight:600">DATE/TIME</th>
+            <th style="padding:8px 10px;text-align:center;color:#888;font-size:11px;font-weight:600">SEV.</th>
+            <th style="padding:8px 10px;text-align:left;color:#888;font-size:11px;font-weight:600">PRESSURE</th>
+            <th style="padding:8px 10px;text-align:left;color:#888;font-size:11px;font-weight:600">SYMPTOMS</th>
+          </tr>
+        </thead>
+        <tbody>${episodeRows}</tbody>
+      </table>
     </div>
 
-    <!-- Severity Distribution -->
-    <div style="background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:16px;margin-bottom:16px">
-      <h3 style="color:#e0e0e0;margin:0 0 8px;font-size:14px">Severity Distribution</h3>
-      ${severityBar(severityDist)}
+    <!-- Symptoms Summary -->
+    <div style="background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:14px;margin-bottom:12px">
+      <h3 style="color:#e0e0e0;margin:0 0 8px;font-size:13px">Symptoms This Week</h3>
+      <div>${symptomsHtml}</div>
     </div>
 
-    <!-- Top Symptoms -->
-    <div style="background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:16px;margin-bottom:16px">
-      <h3 style="color:#e0e0e0;margin:0 0 8px;font-size:14px">Top Symptoms</h3>
-      <ul style="color:#ccc;margin:0;padding-left:20px;font-size:14px">${symptomsHtml}</ul>
+    <!-- Triggers Summary -->
+    <div style="background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:14px;margin-bottom:16px">
+      <h3 style="color:#e0e0e0;margin:0 0 8px;font-size:13px">Triggers This Week</h3>
+      <div>${triggersHtml}</div>
     </div>
-
-    <!-- Top Triggers -->
-    <div style="background:#1e1e2e;border:1px solid #333;border-radius:10px;padding:16px;margin-bottom:16px">
-      <h3 style="color:#e0e0e0;margin:0 0 8px;font-size:14px">Top Triggers</h3>
-      <ul style="color:#ccc;margin:0;padding-left:20px;font-size:14px">${triggersHtml}</ul>
-    </div>
-
-    <!-- Pressure -->
-    ${pressureSection}
 
     <!-- Footer -->
-    <div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #333">
-      <p style="color:#888;font-size:12px;margin:4px 0">Keep tracking — patterns become visible over time.</p>
-      <p style="color:#666;font-size:11px;margin:12px 0">
+    <div style="text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #333">
+      <p style="color:#666;font-size:11px;margin:8px 0">
         <a href="https://potsense.org" style="color:#6C8EBF;text-decoration:none">Open POTSense</a>
       </p>
       <p style="color:#555;font-size:10px;margin:8px 0">

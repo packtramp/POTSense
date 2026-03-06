@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, getDoc, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,32 +25,50 @@ export default function LogScreen() {
   const router = useRouter();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [historyLimited, setHistoryLimited] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       const user = getCurrentUser();
       if (!user) return;
 
-      const episodesRef = collection(db, 'patients', user.uid, 'episodes');
-      getDocs(query(episodesRef, orderBy('timestamp', 'desc')))
-        .then((snap) => {
-          setEpisodes(
-            snap.docs.map((d) => {
-              const data = d.data();
-              return {
-                id: d.id,
-                timestamp: data.timestamp?.toDate?.() || new Date(data.localTime),
-                severity: data.severity,
-                symptoms: data.symptoms || [],
-                notes: data.notes,
-                weather: data.weather,
-                loggedBy: data.loggedBy,
-              };
-            })
-          );
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
+      // Check premium status
+      getDoc(doc(db, 'users', user.uid)).then((snap) => {
+        const premium = snap.exists() && snap.data()?.premiumStatus === 'premium';
+        setIsPremium(premium);
+
+        // Free users: 30-day history only
+        const episodesRef = collection(db, 'patients', user.uid, 'episodes');
+        let q;
+        if (premium) {
+          q = query(episodesRef, orderBy('timestamp', 'desc'));
+        } else {
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          q = query(episodesRef, where('timestamp', '>=', thirtyDaysAgo), orderBy('timestamp', 'desc'));
+        }
+
+        getDocs(q)
+          .then((snap) => {
+            setEpisodes(
+              snap.docs.map((d) => {
+                const data = d.data();
+                return {
+                  id: d.id,
+                  timestamp: data.timestamp?.toDate?.() || new Date(data.localTime),
+                  severity: data.severity,
+                  symptoms: data.symptoms || [],
+                  notes: data.notes,
+                  weather: data.weather,
+                  loggedBy: data.loggedBy,
+                };
+              })
+            );
+            if (!premium) setHistoryLimited(true);
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
+      }).catch(() => setLoading(false));
     }, [])
   );
 
@@ -108,6 +126,13 @@ export default function LogScreen() {
       contentContainerStyle={styles.list}
       data={grouped}
       keyExtractor={(item) => item.date}
+      ListFooterComponent={historyLimited ? (
+        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/subscription')}>
+          <Ionicons name="lock-closed" size={16} color={Colors.premium} />
+          <Text style={styles.upgradeBannerText}>Showing last 30 days. Upgrade for full history.</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+        </Pressable>
+      ) : null}
       renderItem={({ item: group }) => (
         <View>
           <Text style={styles.dateHeader}>{group.date}</Text>
@@ -173,4 +198,11 @@ const styles = StyleSheet.create({
   episodeWeather: { color: Colors.textMuted, fontSize: 13, marginBottom: 4 },
   episodeSymptoms: { color: Colors.orange, fontSize: 12, marginBottom: 4 },
   episodeNotes: { color: Colors.textSecondary, fontSize: 13, fontStyle: 'italic' },
+  upgradeBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: 12, borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.25)', paddingVertical: 14, paddingHorizontal: 16,
+    marginTop: 8, marginBottom: 16,
+  },
+  upgradeBannerText: { color: Colors.premium, fontSize: 13, fontWeight: '600', flex: 1 },
 });

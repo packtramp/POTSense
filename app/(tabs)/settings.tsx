@@ -52,7 +52,7 @@ const TIME_LABELS: Record<string, string> = {
   '20:00': '8:00 PM', '22:00': '10:00 PM',
 };
 
-function getSections(router: any, settings: UserSettings, planLabel: string): SettingsSection[] {
+function getSections(router: any, settings: UserSettings, planLabel: string, isPremium: boolean): SettingsSection[] {
   const tempUnit = settings.units?.temperature || 'F';
   const presUnit = settings.units?.pressure || 'inHg';
   const unitsDetail = `°${tempUnit} • ${presUnit}`;
@@ -88,16 +88,16 @@ function getSections(router: any, settings: UserSettings, planLabel: string): Se
   {
     title: 'NOTIFICATIONS',
     rows: [
-      { icon: 'thermometer-outline', label: 'Pressure Alerts', detail: pressureDetail, onPress: () => router.push('/pressure-alerts') },
+      { icon: 'thermometer-outline', label: 'Pressure Alerts', detail: isPremium ? pressureDetail : 'Premium feature', premium: true, onPress: () => router.push(isPremium ? '/pressure-alerts' : '/subscription') },
       { icon: 'notifications-outline', label: 'Check-in Reminder', detail: reminderDetail, onPress: () => router.push('/reminder-settings') },
-      { icon: 'mail-outline', label: 'Email Notifications', detail: 'Weekly summary', onPress: () => router.push('/email-notifications') },
+      { icon: 'mail-outline', label: 'Email Notifications', detail: isPremium ? 'Weekly summary' : 'Premium feature', premium: true, onPress: () => router.push(isPremium ? '/email-notifications' : '/subscription') },
     ],
   },
   {
     title: 'DATA',
     rows: [
-      { icon: 'document-text-outline', label: 'Export PDF Report', onPress: () => router.push('/pdf-export') },
-      { icon: 'download-outline', label: 'Export All Data (JSON)', onPress: () => router.push('/export-data') },
+      { icon: 'document-text-outline', label: 'Export PDF Report', premium: true, onPress: () => router.push(isPremium ? '/pdf-export' : '/subscription') },
+      { icon: 'download-outline', label: 'Export All Data (JSON)', detail: isPremium ? 'All history' : 'Last 30 days', onPress: () => router.push('/export-data') },
       { icon: 'trash-outline', label: 'Delete Account', onPress: () => router.push('/delete-account') },
     ],
   },
@@ -348,6 +348,7 @@ export default function SettingsScreen() {
   const showAdminPanel = isAdmin(user?.uid, user?.email);
   const [userSettings, setUserSettings] = useState<UserSettings>({});
   const [planLabel, setPlanLabel] = useState('Free Plan');
+  const [isPremium, setIsPremium] = useState(false);
 
   // Reload settings every time screen gains focus (so changes reflect immediately)
   useFocusEffect(
@@ -357,7 +358,9 @@ export default function SettingsScreen() {
         if (snap.exists()) {
           const data = snap.data();
           setUserSettings(data.settings || {});
-          setPlanLabel(data.premiumStatus === 'premium' ? 'Premium' : 'Free Plan');
+          const premium = data.premiumStatus === 'premium';
+          setIsPremium(premium);
+          setPlanLabel(premium ? 'Premium' : 'Free Plan');
         }
       }).catch(() => {});
     }, [user?.uid])
@@ -369,7 +372,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {getSections(router, userSettings, planLabel).map((section) => (
+      {getSections(router, userSettings, planLabel, isPremium).map((section) => (
         <View key={section.title} style={styles.section}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
           <View style={styles.sectionCard}>
@@ -379,12 +382,17 @@ export default function SettingsScreen() {
                 style={[styles.row, i < section.rows.length - 1 && styles.rowBorder]}
                 onPress={row.onPress}
               >
-                <Ionicons name={row.icon} size={20} color={Colors.textSecondary} />
-                <View style={styles.rowText}>
+                <Ionicons name={row.icon} size={20} color={row.premium && !isPremium ? Colors.textMuted : Colors.textSecondary} />
+                <View style={[styles.rowText, row.premium && !isPremium && { opacity: 0.5 }]}>
                   <Text style={styles.rowLabel}>{row.label}</Text>
                   {row.detail && <Text style={styles.rowDetail}>{row.detail}</Text>}
                 </View>
-                {row.premium && <Text style={styles.premiumBadge}>🔒</Text>}
+                {row.premium && !isPremium && (
+                  <View style={styles.premiumBadge}>
+                    <Ionicons name="lock-closed" size={12} color={Colors.premium} />
+                    <Text style={styles.premiumBadgeText}>PRO</Text>
+                  </View>
+                )}
                 <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
               </Pressable>
             ))}
@@ -422,7 +430,12 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowLabel: { color: Colors.text, fontSize: 15 },
   rowDetail: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
-  premiumBadge: { fontSize: 14, marginRight: 4 },
+  premiumBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,215,0,0.15)', borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 3, marginRight: 4,
+  },
+  premiumBadgeText: { color: Colors.premium, fontSize: 10, fontWeight: '700' },
   signOutButton: {
     backgroundColor: Colors.surfaceLight,
     borderRadius: 10,

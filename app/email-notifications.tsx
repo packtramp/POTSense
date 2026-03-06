@@ -83,11 +83,10 @@ export default function EmailNotifications() {
           <View style={styles.previewCard}>
             <Text style={styles.previewTitle}>What's included:</Text>
             {[
-              ['📊', 'Episode count & average severity'],
-              ['📈', 'Severity distribution chart'],
-              ['🎯', 'Top symptoms & triggers'],
-              ['🌡️', 'Barometric pressure correlation'],
-              ['💡', 'Week-over-week patterns'],
+              ['📋', 'Episode log with dates & severity'],
+              ['🌡️', 'Barometric pressure at each episode'],
+              ['📊', 'Pressure trends (3-hour changes)'],
+              ['🎯', 'Symptoms & triggers summary'],
             ].map(([emoji, text]) => (
               <View key={text} style={styles.previewRow}>
                 <Text style={styles.previewEmoji}>{emoji}</Text>
