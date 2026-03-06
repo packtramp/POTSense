@@ -96,8 +96,13 @@ Remaining: RevenueCat/Stripe integration, notifications, onboarding, app store s
 - **Deferred work / multi-session tasks** → create GitHub issue + add to ROADMAP.md
 - **User-submitted feedback** → auto-creates issues via in-app form
 
+## Work Rules
+- **All permissions granted** — Stop asking for confirmation. Just do it.
+- **Bump version** (`constants/version.ts`) with every push.
+- **App Store Launch = v1.0** — Get all features ready, then submit to stores. That's the finish line.
+
 ## Current Status
-**Version:** v0.33+
-**Phase:** Phases 1-6, 8-10 DONE. Premium gating partial (JSON export gated, upgrade CTAs in tracker/trigger settings). Home redesigned (tracker grid + floating FAB).
-**Pending:** RESEND_API_KEY on Vercel, Firebase service account for weekly email (GH #3), test partner premium inheritance on potsense.org.
+**Version:** v0.34
+**Phase:** Phases 1-6, 8-10 DONE. Premium gating partial. Partner premium inheritance + tracker inheritance working.
+**Pending:** Firebase service account for weekly email (GH #3), peer review (soon).
 **Next:** RevenueCat/Stripe integration, then notifications.
