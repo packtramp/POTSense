@@ -1,12 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { signOut, getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/firebase';
 import { isAdmin } from '@/lib/admin';
 import { Colors } from '@/constants/Colors';
+import { APP_VERSION } from '@/constants/version';
 
 function confirm(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
@@ -37,13 +40,40 @@ const comingSoon = () => {
   if (Platform.OS === 'web') window.alert('Coming soon!');
 };
 
-function getSections(router: any): SettingsSection[] { return [
+type UserSettings = {
+  units?: { temperature?: string; pressure?: string };
+  notifications?: { pressureAlerts?: boolean; pressureThreshold?: number; checkInReminder?: boolean; checkInTime?: string };
+  pressureAlerts?: { enabled?: boolean; threshold?: number };
+  reminder?: { enabled?: boolean; time?: string };
+};
+
+const TIME_LABELS: Record<string, string> = {
+  '08:00': '8:00 AM', '12:00': '12:00 PM', '16:00': '4:00 PM',
+  '20:00': '8:00 PM', '22:00': '10:00 PM',
+};
+
+function getSections(router: any, settings: UserSettings, planLabel: string): SettingsSection[] {
+  const tempUnit = settings.units?.temperature || 'F';
+  const presUnit = settings.units?.pressure || 'inHg';
+  const unitsDetail = `°${tempUnit} • ${presUnit}`;
+
+  // Pressure alerts — check both old (notifications) and new (pressureAlerts) paths
+  const paEnabled = settings.pressureAlerts?.enabled ?? settings.notifications?.pressureAlerts ?? true;
+  const paThreshold = settings.pressureAlerts?.threshold ?? settings.notifications?.pressureThreshold ?? 5;
+  const pressureDetail = `${paEnabled ? 'ON' : 'OFF'} • ${paThreshold} hPa/3h`;
+
+  // Reminder — check both old (notifications) and new (reminder) paths
+  const remEnabled = settings.reminder?.enabled ?? settings.notifications?.checkInReminder ?? true;
+  const remTime = settings.reminder?.time ?? settings.notifications?.checkInTime ?? '20:00';
+  const reminderDetail = `${remEnabled ? 'ON' : 'OFF'} • ${TIME_LABELS[remTime] || remTime}`;
+
+  return [
   {
     title: 'ACCOUNT',
     rows: [
       { icon: 'person-outline', label: 'Profile', detail: 'Name, email, password', onPress: () => router.push('/profile') },
       { icon: 'people-outline', label: 'Partners', detail: 'Manage linked partners', premium: true, onPress: () => router.push('/partner-settings') },
-      { icon: 'star-outline', label: 'Subscription', detail: 'Free Plan', onPress: comingSoon },
+      { icon: 'star-outline', label: 'Subscription', detail: planLabel, onPress: () => router.push('/subscription') },
     ],
   },
   {
@@ -51,32 +81,32 @@ function getSections(router: any): SettingsSection[] { return [
     rows: [
       { icon: 'list-outline', label: 'Daily Trackers', detail: 'Customize which to show', onPress: () => router.push('/tracker-settings') },
       { icon: 'albums-outline', label: 'Questionnaire', detail: 'Choose your cards', onPress: () => router.push('/questionnaire-settings') },
-      { icon: 'resize-outline', label: 'Units', detail: '°F • inHg' },
+      { icon: 'resize-outline', label: 'Units', detail: unitsDetail, onPress: () => router.push('/units-settings') },
     ],
   },
   {
     title: 'NOTIFICATIONS',
     rows: [
-      { icon: 'thermometer-outline', label: 'Pressure Alerts', detail: 'ON • 5 hPa/3h' },
-      { icon: 'notifications-outline', label: 'Check-in Reminder', detail: 'ON • 8:00 PM' },
-      { icon: 'mail-outline', label: 'Email Notifications', detail: 'Weekly summary: ON' },
+      { icon: 'thermometer-outline', label: 'Pressure Alerts', detail: pressureDetail, onPress: () => router.push('/pressure-alerts') },
+      { icon: 'notifications-outline', label: 'Check-in Reminder', detail: reminderDetail, onPress: () => router.push('/reminder-settings') },
+      { icon: 'mail-outline', label: 'Email Notifications', detail: 'Weekly summary', onPress: comingSoon },
     ],
   },
   {
     title: 'DATA',
     rows: [
       { icon: 'document-text-outline', label: 'Export PDF Report', onPress: () => router.push('/pdf-export') },
-      { icon: 'download-outline', label: 'Export All Data (JSON)' },
-      { icon: 'trash-outline', label: 'Delete Account' },
+      { icon: 'download-outline', label: 'Export All Data (JSON)', onPress: () => router.push('/export-data') },
+      { icon: 'trash-outline', label: 'Delete Account', onPress: () => router.push('/delete-account') },
     ],
   },
   {
     title: 'INFO',
     rows: [
       { icon: 'chatbubble-outline', label: 'Send Feedback', detail: 'Feature requests & bug reports', onPress: () => router.push('/feedback') },
-      { icon: 'shield-checkmark-outline', label: 'Privacy Policy' },
-      { icon: 'document-outline', label: 'Terms of Service' },
-      { icon: 'information-circle-outline', label: 'About POTSense v1.0' },
+      { icon: 'shield-checkmark-outline', label: 'Privacy Policy', onPress: () => router.push('/privacy-policy') },
+      { icon: 'document-outline', label: 'Terms of Service', onPress: () => router.push('/terms') },
+      { icon: 'information-circle-outline', label: `About POTSense`, detail: `v${APP_VERSION}`, onPress: () => router.push('/about') },
     ],
   },
 ]; }
@@ -315,6 +345,22 @@ export default function SettingsScreen() {
   const router = useRouter();
   const user = getCurrentUser();
   const showAdminPanel = isAdmin(user?.uid, user?.email);
+  const [userSettings, setUserSettings] = useState<UserSettings>({});
+  const [planLabel, setPlanLabel] = useState('Free Plan');
+
+  // Reload settings every time screen gains focus (so changes reflect immediately)
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      getDoc(doc(db, 'users', user.uid)).then((snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setUserSettings(data.settings || {});
+          setPlanLabel(data.premiumStatus === 'premium' ? 'Premium' : 'Free Plan');
+        }
+      }).catch(() => {});
+    }, [user?.uid])
+  );
 
   const handleSignOut = () => {
     confirm('Sign Out', 'Are you sure?', () => signOut());
@@ -322,7 +368,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {getSections(router).map((section) => (
+      {getSections(router, userSettings, planLabel).map((section) => (
         <View key={section.title} style={styles.section}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
           <View style={styles.sectionCard}>

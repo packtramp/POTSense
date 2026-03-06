@@ -14,6 +14,7 @@ export default function QuestionnaireSettings() {
   const [disabledCards, setDisabledCards] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -22,6 +23,7 @@ export default function QuestionnaireSettings() {
       const data = snap.data();
       if (data?.settings?.disabledCategories) setDisabledCategories(data.settings.disabledCategories);
       if (data?.settings?.disabledCards) setDisabledCards(data.settings.disabledCards);
+      if (data?.premiumStatus === 'premium') setIsPremium(true);
     }).catch(() => {});
   }, []);
 
@@ -41,6 +43,9 @@ export default function QuestionnaireSettings() {
   };
 
   const toggleCategory = (key: string) => {
+    // Don't allow toggling fully-premium categories for free users
+    const items = getAllItemsInCategory(key);
+    if (!isPremium && items.length > 0 && items.every((i) => i.premium)) return;
     const newList = disabledCategories.includes(key)
       ? disabledCategories.filter((c) => c !== key)
       : [...disabledCategories, key];
@@ -78,55 +83,71 @@ export default function QuestionnaireSettings() {
           const items = getAllItemsInCategory(cat.key);
           const catDisabled = disabledCategories.includes(cat.key);
           const isExpanded = expandedCategory === cat.key;
+          // Category is fully premium if ALL items in it are premium
+          const allPremium = items.length > 0 && items.every((i) => i.premium);
+          const catLocked = allPremium && !isPremium;
 
           return (
-            <View key={cat.key} style={styles.categoryBlock}>
+            <View key={cat.key} style={[styles.categoryBlock, catLocked && styles.lockedBlock]}>
               <View style={styles.categoryHeader}>
                 <Pressable
                   style={styles.categoryTap}
-                  onPress={() => setExpandedCategory(isExpanded ? null : cat.key)}
+                  onPress={() => !catLocked && setExpandedCategory(isExpanded ? null : cat.key)}
                 >
                   <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
                   <View style={styles.categoryInfo}>
-                    <Text style={[styles.categoryLabel, catDisabled && styles.disabledText]}>
+                    <Text style={[styles.categoryLabel, (catDisabled || catLocked) && styles.disabledText]}>
                       {cat.label}
                     </Text>
-                    <Text style={styles.categoryCount}>{items.length} items</Text>
+                    <Text style={styles.categoryCount}>
+                      {items.length} items{catLocked ? ' · 🔒 Premium' : ''}
+                    </Text>
                   </View>
-                  <Ionicons
-                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={Colors.textMuted}
-                  />
+                  {!catLocked && (
+                    <Ionicons
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color={Colors.textMuted}
+                    />
+                  )}
                 </Pressable>
-                <Switch
-                  value={!catDisabled}
-                  onValueChange={() => toggleCategory(cat.key)}
-                  trackColor={{ false: Colors.surfaceLight, true: Colors.green }}
-                  thumbColor={Colors.text}
-                />
+                {catLocked ? (
+                  <Ionicons name="lock-closed" size={18} color={Colors.textMuted} />
+                ) : (
+                  <Switch
+                    value={!catDisabled}
+                    onValueChange={() => toggleCategory(cat.key)}
+                    trackColor={{ false: Colors.surfaceLight, true: Colors.green }}
+                    thumbColor={Colors.text}
+                  />
+                )}
               </View>
 
-              {isExpanded && !catDisabled && (
+              {isExpanded && !catDisabled && !catLocked && (
                 <View style={styles.cardList}>
                   {items.map((item) => {
+                    const itemLocked = item.premium && !isPremium;
                     const itemDisabled = disabledCards.includes(item.id);
                     return (
-                      <View key={item.id} style={styles.cardRow}>
-                        <Text style={styles.cardEmoji}>{item.emoji}</Text>
+                      <View key={item.id} style={[styles.cardRow, itemLocked && styles.lockedRow]}>
+                        <Text style={[styles.cardEmoji, itemLocked && { opacity: 0.4 }]}>{item.emoji}</Text>
                         <Text
-                          style={[styles.cardQuestion, itemDisabled && styles.disabledText]}
+                          style={[styles.cardQuestion, (itemDisabled || itemLocked) && styles.disabledText]}
                           numberOfLines={1}
                         >
                           {item.label}
                         </Text>
-                        <Switch
-                          value={!itemDisabled}
-                          onValueChange={() => toggleCard(item.id)}
-                          trackColor={{ false: Colors.surfaceLight, true: Colors.green }}
-                          thumbColor={Colors.text}
-                          style={styles.cardSwitch}
-                        />
+                        {itemLocked ? (
+                          <Ionicons name="lock-closed" size={14} color={Colors.textMuted} style={{ marginRight: 8 }} />
+                        ) : (
+                          <Switch
+                            value={!itemDisabled}
+                            onValueChange={() => toggleCard(item.id)}
+                            trackColor={{ false: Colors.surfaceLight, true: Colors.green }}
+                            thumbColor={Colors.text}
+                            style={styles.cardSwitch}
+                          />
+                        )}
                       </View>
                     );
                   })}
@@ -201,5 +222,7 @@ const styles = StyleSheet.create({
   cardSwitch: { transform: [{ scale: 0.8 }] },
 
   disabledText: { color: Colors.textMuted },
+  lockedBlock: { opacity: 0.5 },
+  lockedRow: { opacity: 0.45 },
   savingText: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 8 },
 });

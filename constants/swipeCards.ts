@@ -161,11 +161,11 @@ export function getFilteredPickers(
 }
 
 // For settings page — get all items (toggles + pickers) in a category
-export function getAllItemsInCategory(catKey: string): { id: string; label: string; emoji: string }[] {
+export function getAllItemsInCategory(catKey: string): { id: string; label: string; emoji: string; premium?: boolean }[] {
   const toggles = TOGGLE_CHIPS.filter((c) => c.category === catKey)
-    .map((c) => ({ id: c.id, label: c.label, emoji: c.emoji }));
+    .map((c) => ({ id: c.id, label: c.label, emoji: c.emoji, premium: c.premium }));
   const pickers = QUANTITY_PICKERS.filter((p) => p.category === catKey && !p.conditional)
-    .map((p) => ({ id: p.id, label: p.label, emoji: p.emoji }));
+    .map((p) => ({ id: p.id, label: p.label, emoji: p.emoji, premium: p.premium }));
   return [...toggles, ...pickers];
 }
 
