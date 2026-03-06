@@ -47,14 +47,20 @@ module.exports = async (req, res) => {
       if (!ghRes.ok) console.error('GitHub Issue creation failed:', await ghRes.text());
     }
 
-    // Also send email notification
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: 'POTSense Feedback <feedback@potsense.org>',
-      to: 'robdorsett@gmail.com',
-      subject: `[POTSense ${type}] ${title}`,
-      html: body.replace(/\n/g, '<br/>').replace(/## /g, '<h3>').replace(/<h3>(.*?)<br\/>/g, '<h3>$1</h3>'),
-    });
+    // Also send email notification (optional — skip if no API key)
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: 'POTSense Feedback <feedback@potsense.org>',
+          to: 'robdorsett@gmail.com',
+          subject: `[POTSense ${type}] ${title}`,
+          html: body.replace(/\n/g, '<br/>').replace(/## /g, '<h3>').replace(/<h3>(.*?)<br\/>/g, '<h3>$1</h3>'),
+        });
+      } catch (emailErr) {
+        console.error('Email notification failed (non-fatal):', emailErr);
+      }
+    }
 
     res.status(200).json({ ok: true });
   } catch (err) {
