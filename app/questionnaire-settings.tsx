@@ -157,6 +157,19 @@ export default function QuestionnaireSettings() {
           );
         })}
 
+        {/* Upgrade CTA for non-premium */}
+        {!isPremium && (
+          <View style={styles.upgradeCard}>
+            <Text style={styles.upgradeTitle}>Unlock All Triggers</Text>
+            <Text style={styles.upgradeText}>
+              Premium includes follow-up questions, custom triggers, and full trigger customization.
+            </Text>
+            <Pressable style={styles.upgradeButton} onPress={() => router.push('/subscription')}>
+              <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+            </Pressable>
+          </View>
+        )}
+
         {saving && <Text style={styles.savingText}>Saving...</Text>}
       </ScrollView>
     </View>
@@ -225,4 +238,24 @@ const styles = StyleSheet.create({
   lockedBlock: { opacity: 0.5 },
   lockedRow: { opacity: 0.45 },
   savingText: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 8 },
+
+  // Upgrade card
+  upgradeCard: {
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+    padding: 18,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  upgradeTitle: { color: Colors.premium, fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  upgradeText: { color: Colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 18, marginBottom: 14 },
+  upgradeButton: {
+    backgroundColor: Colors.premium,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  upgradeButtonText: { color: '#000', fontSize: 14, fontWeight: '700' },
 });

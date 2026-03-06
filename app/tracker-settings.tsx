@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Switch,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -162,9 +161,7 @@ export default function TrackerSettingsScreen() {
           <Text style={styles.upgradeText}>
             Premium includes {premiumCount} additional trackers for diet, body, activity, and mood tracking.
           </Text>
-          <Pressable style={styles.upgradeButton} onPress={() => {
-            if (Platform.OS === 'web') window.alert('Coming soon!');
-          }}>
+          <Pressable style={styles.upgradeButton} onPress={() => router.push('/subscription')}>
             <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
           </Pressable>
         </View>

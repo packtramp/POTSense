@@ -47,10 +47,12 @@ type UserSettings = {
   reminder?: { enabled?: boolean; time?: string };
 };
 
-const TIME_LABELS: Record<string, string> = {
-  '08:00': '8:00 AM', '12:00': '12:00 PM', '16:00': '4:00 PM',
-  '20:00': '8:00 PM', '22:00': '10:00 PM',
-};
+function formatTimeLabel(time24: string): string {
+  const [h, m] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+}
 
 function getSections(router: any, settings: UserSettings, planLabel: string, isPremium: boolean): SettingsSection[] {
   const tempUnit = settings.units?.temperature || 'F';
@@ -66,7 +68,7 @@ function getSections(router: any, settings: UserSettings, planLabel: string, isP
   // Reminder — check both old (notifications) and new (reminder) paths
   const remEnabled = settings.reminder?.enabled ?? settings.notifications?.checkInReminder ?? true;
   const remTime = settings.reminder?.time ?? settings.notifications?.checkInTime ?? '20:00';
-  const reminderDetail = `${remEnabled ? 'ON' : 'OFF'} • ${TIME_LABELS[remTime] || remTime}`;
+  const reminderDetail = `${remEnabled ? 'ON' : 'OFF'} • ${formatTimeLabel(remTime)}`;
 
   return [
   {
@@ -96,8 +98,8 @@ function getSections(router: any, settings: UserSettings, planLabel: string, isP
   {
     title: 'DATA',
     rows: [
-      { icon: 'document-text-outline', label: 'Export PDF Report', premium: true, onPress: () => router.push(isPremium ? '/pdf-export' : '/subscription') },
-      { icon: 'download-outline', label: 'Export All Data (JSON)', detail: isPremium ? 'All history' : 'Last 30 days', onPress: () => router.push('/export-data') },
+      { icon: 'document-text-outline', label: 'Export PDF Report', detail: isPremium ? 'All date ranges' : 'Last 30 days', onPress: () => router.push('/pdf-export') },
+      { icon: 'download-outline', label: 'Export All Data (JSON)', detail: isPremium ? 'All history' : 'Premium feature', premium: true, onPress: () => router.push(isPremium ? '/export-data' : '/subscription') },
       { icon: 'trash-outline', label: 'Delete Account', onPress: () => router.push('/delete-account') },
     ],
   },

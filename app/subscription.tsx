@@ -14,7 +14,6 @@ const FREE_FEATURES = [
   '30-day history',
   'News feed',
   '30-day episode PDF report',
-  'JSON data export',
 ];
 
 const PREMIUM_FEATURES = [
@@ -25,7 +24,7 @@ const PREMIUM_FEATURES = [
   'Barometric pressure alerts',
   'Trends & correlation analysis',
   'Custom PDF reports',
-  'CSV data export',
+  'JSON & CSV data export',
   'Trigger customization',
   'Weekly email summary',
   'Priority support',

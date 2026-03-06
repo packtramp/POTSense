@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc } from 'firebase/firestore';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { db } from '@/lib/firebase';
@@ -37,11 +37,11 @@ type Stats = {
   episodesWithWeather: number;
 };
 
-const RANGE_OPTIONS: { key: RangeOption; label: string }[] = [
+const RANGE_OPTIONS: { key: RangeOption; label: string; premium?: boolean }[] = [
   { key: '7', label: 'Last 7 days' },
   { key: '30', label: 'Last 30 days' },
-  { key: '90', label: 'Last 90 days' },
-  { key: 'all', label: 'All time' },
+  { key: '90', label: 'Last 90 days', premium: true },
+  { key: 'all', label: 'All time', premium: true },
 ];
 
 const SEVERITY_LABELS = ['Mild', 'Low', 'Moderate', 'Severe', 'Worst'];
@@ -247,6 +247,15 @@ export default function PDFExport() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user) return;
+    getDoc(doc(db, 'users', user.uid)).then((snap) => {
+      if (snap.exists() && snap.data()?.premiumStatus === 'premium') setIsPremium(true);
+    }).catch(() => {});
+  }, []);
 
   const fetchEpisodes = useCallback(async () => {
     const user = getCurrentUser();
@@ -334,17 +343,21 @@ export default function PDFExport() {
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Date Range</Text>
           <View style={styles.rangeRow}>
-            {RANGE_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.key}
-                style={[styles.rangeButton, range === opt.key && styles.rangeButtonActive]}
-                onPress={() => setRange(opt.key)}
-              >
-                <Text style={[styles.rangeButtonText, range === opt.key && styles.rangeButtonTextActive]}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
+            {RANGE_OPTIONS.map((opt) => {
+              const locked = opt.premium && !isPremium;
+              return (
+                <Pressable
+                  key={opt.key}
+                  style={[styles.rangeButton, range === opt.key && styles.rangeButtonActive, locked && { opacity: 0.5 }]}
+                  onPress={() => locked ? router.push('/subscription') : setRange(opt.key)}
+                >
+                  <Text style={[styles.rangeButtonText, range === opt.key && styles.rangeButtonTextActive]}>
+                    {opt.label}
+                  </Text>
+                  {locked && <Ionicons name="lock-closed" size={10} color={Colors.textMuted} style={{ marginLeft: 4 }} />}
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
