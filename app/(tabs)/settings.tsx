@@ -41,7 +41,7 @@ function getSections(router: any): SettingsSection[] { return [
   {
     title: 'ACCOUNT',
     rows: [
-      { icon: 'person-outline', label: 'Profile', onPress: comingSoon },
+      { icon: 'person-outline', label: 'Profile', detail: 'Name, email, password', onPress: () => router.push('/profile') },
       { icon: 'people-outline', label: 'Partners', detail: 'Manage linked partners', premium: true, onPress: () => router.push('/partner-settings') },
       { icon: 'star-outline', label: 'Subscription', detail: 'Free Plan', onPress: comingSoon },
     ],

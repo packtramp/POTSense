@@ -111,6 +111,25 @@ export default function SwipeQuestionnaire({
     }
   };
 
+  // Dismiss popup — if no selections were made, untoggle the chip
+  const dismissPopup = () => {
+    if (popupChipId) {
+      const pickers = conditionalPickersMap.get(popupChipId) || [];
+      const hasAnySelection = pickers.some(
+        (p) => quantities[p.id] || (textNotes[p.id] && textNotes[p.id].trim().length > 0)
+      );
+      if (!hasAnySelection) {
+        // No selections made — untoggle the chip
+        setActiveToggles((prev) => {
+          const next = new Set(prev);
+          next.delete(popupChipId);
+          return next;
+        });
+      }
+    }
+    setPopupChipId(null);
+  };
+
   const handleQuantitySelect = (pickerId: string, value: string) => {
     setQuantities((prev) => {
       if (prev[pickerId] === value) {
@@ -212,7 +231,18 @@ export default function SwipeQuestionnaire({
                       ]}
                       numberOfLines={1}
                     >
-                      {isCycling && cycleVal ? `${chip.label}: ${cycleVal}` : chip.label}
+                      {isCycling && cycleVal
+                      ? `${chip.label}: ${cycleVal}`
+                      : hasFollowUp && isActive && (() => {
+                          const pickers = conditionalPickersMap.get(chip.id) || [];
+                          const vals = pickers
+                            .map((p) => quantities[p.id])
+                            .filter(Boolean);
+                          return vals.length > 0
+                            ? `${chip.label}: ${vals.join(', ')}`
+                            : chip.label;
+                        })()
+                      || chip.label}
                     </Text>
                     {/* Small dot indicator for chips with follow-ups */}
                     {hasFollowUp && isActive && (
@@ -241,14 +271,14 @@ export default function SwipeQuestionnaire({
         visible={popupChipId !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => setPopupChipId(null)}
+        onRequestClose={dismissPopup}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setPopupChipId(null)}>
+        <Pressable style={styles.modalOverlay} onPress={dismissPopup}>
           <Pressable style={styles.popupCard} onPress={(e) => e.stopPropagation()}>
             {/* Popup header */}
             <View style={styles.popupHeader}>
               <Text style={styles.popupTitle}>Quick follow-up</Text>
-              <Pressable onPress={() => setPopupChipId(null)} hitSlop={12}>
+              <Pressable onPress={dismissPopup} hitSlop={12}>
                 <Ionicons name="close-circle" size={24} color={Colors.textMuted} />
               </Pressable>
             </View>
@@ -284,7 +314,13 @@ export default function SwipeQuestionnaire({
                     placeholder={picker.textPlaceholder || 'Add details...'}
                     placeholderTextColor={Colors.textMuted}
                     value={textNotes[picker.id] || ''}
-                    onChangeText={(text) => setTextNotes((prev) => ({ ...prev, [picker.id]: text }))}
+                    onChangeText={(text) => {
+                      setTextNotes((prev) => ({ ...prev, [picker.id]: text }));
+                      // Auto-select "Other" when user starts typing
+                      if (text.length > 0 && picker.options.includes('Other')) {
+                        setQuantities((prev) => ({ ...prev, [picker.id]: 'Other' }));
+                      }
+                    }}
                     multiline
                     numberOfLines={2}
                     textAlignVertical="top"
@@ -296,7 +332,7 @@ export default function SwipeQuestionnaire({
             {/* Done button */}
             <Pressable
               style={styles.popupDoneButton}
-              onPress={() => setPopupChipId(null)}
+              onPress={dismissPopup}
             >
               <Text style={styles.popupDoneText}>Got it</Text>
             </Pressable>

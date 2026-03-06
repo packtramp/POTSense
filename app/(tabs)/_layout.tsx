@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react';
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { APP_VERSION } from '@/constants/version';
+import { getCurrentUser } from '@/lib/auth';
+import { getLinkedPatient } from '@/lib/partners';
 
 type TabIcon = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -15,9 +18,22 @@ const tabs: { name: string; title: string; icon: TabIcon; iconFocused: TabIcon }
 ];
 
 export default function TabLayout() {
+  const [patientName, setPatientName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user) {
+      getLinkedPatient(user.uid).then((result) => {
+        if (result) {
+          setPatientName(result.displayName || result.email || 'Patient');
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
   return (
     <Tabs
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerStyle: { backgroundColor: Colors.background },
         headerTintColor: Colors.text,
         headerRight: () => (
@@ -25,6 +41,24 @@ export default function TabLayout() {
             v{APP_VERSION}
           </Text>
         ),
+        // Partner banner in header — show patient name on all tabs except news
+        headerTitle: () => {
+          const tab = tabs.find((t) => t.name === route.name);
+          const title = tab?.title || '';
+          if (patientName && route.name !== 'news' && route.name !== 'settings') {
+            return (
+              <View style={{ alignItems: 'center' }}>
+                <Text style={{ color: '#FF6B6B', fontSize: 17, fontWeight: '700' }}>
+                  {patientName}'s {title}
+                </Text>
+                <Text style={{ color: '#FF6B6B', fontSize: 10, fontWeight: '500', opacity: 0.7 }}>
+                  Partner Mode
+                </Text>
+              </View>
+            );
+          }
+          return <Text style={{ color: Colors.text, fontSize: 17, fontWeight: '600' }}>{title}</Text>;
+        },
         tabBarStyle: {
           backgroundColor: Colors.tabBarBg,
           borderTopColor: Colors.border,
@@ -36,7 +70,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.tabActive,
         tabBarInactiveTintColor: Colors.tabInactive,
         tabBarLabelStyle: { fontSize: 11 },
-      }}
+      })}
     >
       {tabs.map((tab) => (
         <Tabs.Screen

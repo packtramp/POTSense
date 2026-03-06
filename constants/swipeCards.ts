@@ -39,11 +39,11 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'ate', label: 'Eaten Recently', emoji: '🍽️', category: 'diet', toggleColor: 'good' },
   { id: 'alcohol', label: 'Alcohol', emoji: '🍷', category: 'diet', levels: ['0', '1', '2', '3+'] },
   { id: 'caffeine_cups', label: 'Caffeine', emoji: '☕', category: 'diet', levels: ['0', '1', '2', '3+'] },
-  { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', levels: ['Coffee', 'Tea', 'Energy Drink', 'Soda'], colorScale: 'neutral' },
+  { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', levels: ['Coffee', 'Tea', 'Energy Drink', 'Soda'], colorScale: 'blue' },
   { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', levels: ['0', '1', '2', '3+'] },
-  { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet', toggleColor: 'bad' },
-  { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet', toggleColor: 'bad' },
-  { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet', toggleColor: 'bad' },
+  { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet', toggleColor: 'neutral' },
+  { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet', toggleColor: 'neutral' },
+  { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet', toggleColor: 'neutral' },
   { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet', toggleColor: 'bad' },
 
   // Sleep
@@ -52,27 +52,27 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
 
   // Activity
   { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'], colorScale: 'blue' },
-  { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity', toggleColor: 'bad' },
+  { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity', toggleColor: 'neutral' },
   { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity', toggleColor: 'neutral' },
-  { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity', toggleColor: 'bad' },
+  { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity', toggleColor: 'neutral' },
   { id: 'bath', label: 'Bath/Shower', emoji: '🛁', category: 'activity', toggleColor: 'neutral' },
   { id: 'stairs', label: 'Stairs', emoji: '🪜', category: 'activity', toggleColor: 'neutral' },
   { id: 'driving', label: 'Long Drive', emoji: '🚗', category: 'activity', toggleColor: 'neutral' },
   { id: 'sedentary', label: 'Sitting All Day', emoji: '🛋️', category: 'activity', toggleColor: 'bad' },
-  { id: 'standing', label: 'Long Standing', emoji: '🧍', category: 'activity', toggleColor: 'bad' },
+  { id: 'standing', label: 'Long Standing', emoji: '🧍', category: 'activity', toggleColor: 'neutral' },
 
   // Environment
-  { id: 'hot', label: 'Been in Heat', emoji: '🔥', category: 'environment', toggleColor: 'bad' },
+  { id: 'hot', label: 'Been in Heat', emoji: '🔥', category: 'environment', toggleColor: 'neutral' },
   { id: 'temp_change', label: 'Temp Change', emoji: '🌡️', category: 'environment', toggleColor: 'neutral' },
-  { id: 'humidity', label: 'High Humidity', emoji: '💦', category: 'environment', toggleColor: 'bad' },
-  { id: 'sun', label: 'Lots of Sun', emoji: '☀️', category: 'environment', toggleColor: 'bad' },
+  { id: 'humidity', label: 'High Humidity', emoji: '💦', category: 'environment', toggleColor: 'neutral' },
+  { id: 'sun', label: 'Lots of Sun', emoji: '☀️', category: 'environment', toggleColor: 'neutral' },
   { id: 'altitude', label: 'Altitude Change', emoji: '⛰️', category: 'environment', toggleColor: 'neutral' },
-  { id: 'crowded', label: 'Crowded Place', emoji: '👥', category: 'environment', toggleColor: 'bad' },
+  { id: 'crowded', label: 'Crowded Place', emoji: '👥', category: 'environment', toggleColor: 'neutral' },
   { id: 'air_quality', label: 'Bad Air Quality', emoji: '🌫️', category: 'environment', toggleColor: 'bad' },
   { id: 'loud_noise', label: 'Loud Noise', emoji: '🔊', category: 'environment', toggleColor: 'bad' },
 
   // Health
-  { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', levels: ['None', 'Mild', 'Moderate', 'Severe'] },
+  { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', levels: ['Mild', 'Moderate', 'Severe'] },
   { id: 'new_med', label: 'New Medication', emoji: '🆕', category: 'health', toggleColor: 'neutral' },
   { id: 'compression', label: 'Compression', emoji: '🧦', category: 'health', toggleColor: 'good' },
   { id: 'menstrual', label: 'On Period', emoji: '🩸', category: 'health', toggleColor: 'bad' },
@@ -82,8 +82,8 @@ export const TOGGLE_CHIPS: ToggleChip[] = [
   { id: 'allergic_reaction', label: 'Allergic Reaction', emoji: '🤧', category: 'health', toggleColor: 'bad' },
 
   // Mental
-  { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', levels: ['None', 'Mild', 'Moderate', 'Bad'] },
-  { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental', levels: ['None', 'Mild', 'Moderate', 'High'] },
+  { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', levels: ['Mild', 'Moderate', 'Bad'] },
+  { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental', levels: ['Mild', 'Moderate', 'High'] },
 
   // Lifestyle
   { id: 'screen_time', label: 'Screen Time', emoji: '📱', category: 'lifestyle', toggleColor: 'neutral' },
@@ -104,13 +104,17 @@ export const QUANTITY_PICKERS: QuantityPicker[] = [
   { id: 'stress_notes', label: 'What\'s Causing Stress?', emoji: '😰', category: 'mental', options: ['Work', 'Health', 'Family', 'Other'], conditional: 'stressed', hasTextInput: true, textPlaceholder: 'Details...' },
   { id: 'sleep_hours', label: 'How Many Hours?', emoji: '🕐', category: 'sleep', options: ['< 4 hrs', '4-5 hrs', '6-7 hrs'], conditional: 'bad_sleep' },
   { id: 'head_elevated', label: 'Head Elevated?', emoji: '🛏️', category: 'sleep', options: ['Yes', 'No'], conditional: 'bad_sleep' },
+  { id: 'restless_legs', label: 'Restless Legs?', emoji: '🦵', category: 'sleep', options: ['Yes', 'No'], conditional: 'bad_sleep' },
   { id: 'bath_type', label: 'Bath or Shower?', emoji: '🚿', category: 'activity', options: ['Bath', 'Shower'], conditional: 'bath' },
   { id: 'bath_temp', label: 'Water Temp', emoji: '🌡️', category: 'activity', options: ['Hot', 'Warm', 'Cool'], conditional: 'bath' },
   { id: 'period_day', label: 'Period Day', emoji: '🩸', category: 'health', options: ['Day 1-2', 'Day 3-4', 'Day 5+'], conditional: 'menstrual' },
-  { id: 'illness_type', label: 'Illness Type', emoji: '🤒', category: 'health', options: ['Cold/Flu', 'GI', 'Other'], conditional: 'illness' },
+  { id: 'illness_type', label: 'Illness Type', emoji: '🤒', category: 'health', options: ['Cold/Flu', 'GI', 'Other'], conditional: 'illness', hasTextInput: true, textPlaceholder: 'Details...' },
   { id: 'social_duration', label: 'How Long?', emoji: '🎉', category: 'lifestyle', options: ['< 1 hr', '1-2 hrs', '2+ hrs'], conditional: 'social_event' },
-  { id: 'travel_type', label: 'Travel Type', emoji: '✈️', category: 'lifestyle', options: ['Short', 'Long drive', 'Flight'], conditional: 'travel' },
+  { id: 'travel_type', label: 'Travel Type', emoji: '✈️', category: 'lifestyle', options: ['< 1 hr', '1-3 hrs', '3+ hrs', 'Flight'], conditional: 'travel' },
   { id: 'standing_duration', label: 'How Long?', emoji: '🧍', category: 'activity', options: ['10 min', '20 min', '30+ min'], conditional: 'standing' },
+  { id: 'new_med_name', label: 'What Medication?', emoji: '💊', category: 'health', options: [], conditional: 'new_med', hasTextInput: true, textPlaceholder: 'Medication name...' },
+  { id: 'histamine_food', label: 'What Did You Eat?', emoji: '⚠️', category: 'diet', options: ['Aged Cheese', 'Fermented Food', 'Cured Meat', 'Wine/Beer', 'Other'], conditional: 'histamine', hasTextInput: true, textPlaceholder: 'Details...' },
+  { id: 'allergy_detail', label: 'What Happened?', emoji: '🤧', category: 'health', options: ['Food', 'Pollen', 'Pet', 'Medication', 'Other'], conditional: 'allergic_reaction', hasTextInput: true, textPlaceholder: 'Details...' },
 ];
 
 // ═══════════════════════════════════════════════════════════════

@@ -39,6 +39,7 @@ export default function EpisodeModal() {
   const [disabledCategories, setDisabledCategories] = useState<string[]>([]);
   const [disabledCards, setDisabledCards] = useState<string[]>([]);
   const [linkedPatientUid, setLinkedPatientUid] = useState<string | null>(null);
+  const [linkedPatientName, setLinkedPatientName] = useState<string | null>(null);
 
   // Auto-fetch weather + user question prefs when modal opens
   useEffect(() => {
@@ -62,7 +63,10 @@ export default function EpisodeModal() {
 
       // Check if this user is a partner — episodes save to patient's collection
       getLinkedPatient(user.uid).then((result) => {
-        if (result) setLinkedPatientUid(result.patientUid);
+        if (result) {
+          setLinkedPatientUid(result.patientUid);
+          setLinkedPatientName(result.displayName || result.email || 'patient');
+        }
       }).catch(() => {});
     }
   }, []);
@@ -150,7 +154,14 @@ export default function EpisodeModal() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Log Episode</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={styles.headerTitle}>Log Episode</Text>
+          {linkedPatientName && (
+            <Text style={{ color: Colors.primary, fontSize: 11, fontWeight: '600' }}>
+              Logging for {linkedPatientName}
+            </Text>
+          )}
+        </View>
         <View style={{ width: 28 }} />
       </View>
 

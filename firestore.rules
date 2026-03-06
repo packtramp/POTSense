@@ -12,6 +12,13 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
       allow write: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      // Allow partner linking: another authed user can add themselves as partner
+      // or set their own linkedPatient field during code redemption
+      allow update: if request.auth != null
+        && (request.auth.uid == uid || isAdmin()
+            // Partner linking: allow writing linkedPartners/linkedPatient/role fields
+            || request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['linkedPartners', 'linkedPatient', 'role']));
     }
 
     // Episodes — member or linked partners can read/write
@@ -36,10 +43,11 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == memberUid;
     }
 
-    // Invite codes — anyone authed can read (to validate), member creates
+    // Invite codes — anyone authed can read (to validate), create, update (mark used)
     match /inviteCodes/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
+      allow update: if request.auth != null;
       allow delete: if request.auth != null;
     }
 
