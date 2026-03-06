@@ -150,19 +150,17 @@ export default function FeedbackScreen() {
         {/* Page selector */}
         <View>
           <Text style={styles.fieldLabel}>Which page/screen?</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-            <View style={styles.chipRow}>
-              {PAGES.map((p) => (
-                <Pressable
-                  key={p}
-                  style={[styles.chip, page === p && styles.chipSelected]}
-                  onPress={() => setPage(page === p ? '' : p)}
-                >
-                  <Text style={[styles.chipText, page === p && styles.chipTextSelected]}>{p}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
+          <View style={styles.chipRow}>
+            {PAGES.map((p) => (
+              <Pressable
+                key={p}
+                style={[styles.chip, page === p && styles.chipSelected]}
+                onPress={() => setPage(page === p ? '' : p)}
+              >
+                <Text style={[styles.chipText, page === p && styles.chipTextSelected]}>{p}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         {type === 'bug' ? (
@@ -294,8 +292,7 @@ const styles = StyleSheet.create({
     padding: 12, color: Colors.text, fontSize: 15, minHeight: 80, lineHeight: 22,
   },
 
-  chipScroll: { marginBottom: -8 },
-  chipRow: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
     backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border,

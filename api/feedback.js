@@ -52,7 +52,7 @@ module.exports = async (req, res) => {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: 'POTSense Feedback <feedback@potsense.org>',
+          from: 'POTSense Feedback <onboarding@resend.dev>',
           to: 'robdorsett@gmail.com',
           subject: `[POTSense ${type}] ${title}`,
           html: body.replace(/\n/g, '<br/>').replace(/## /g, '<h3>').replace(/<h3>(.*?)<br\/>/g, '<h3>$1</h3>'),
