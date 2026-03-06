@@ -60,7 +60,8 @@ function getSections(router: any, settings: UserSettings, planLabel: string): Se
   // Pressure alerts — check both old (notifications) and new (pressureAlerts) paths
   const paEnabled = settings.pressureAlerts?.enabled ?? settings.notifications?.pressureAlerts ?? true;
   const paThreshold = settings.pressureAlerts?.threshold ?? settings.notifications?.pressureThreshold ?? 5;
-  const pressureDetail = `${paEnabled ? 'ON' : 'OFF'} • ${paThreshold} hPa/3h`;
+  const paDisplay = presUnit === 'inHg' ? `${(paThreshold * 0.02953).toFixed(2)} inHg` : `${paThreshold} hPa`;
+  const pressureDetail = `${paEnabled ? 'ON' : 'OFF'} • ${paDisplay}/3h`;
 
   // Reminder — check both old (notifications) and new (reminder) paths
   const remEnabled = settings.reminder?.enabled ?? settings.notifications?.checkInReminder ?? true;
@@ -89,7 +90,7 @@ function getSections(router: any, settings: UserSettings, planLabel: string): Se
     rows: [
       { icon: 'thermometer-outline', label: 'Pressure Alerts', detail: pressureDetail, onPress: () => router.push('/pressure-alerts') },
       { icon: 'notifications-outline', label: 'Check-in Reminder', detail: reminderDetail, onPress: () => router.push('/reminder-settings') },
-      { icon: 'mail-outline', label: 'Email Notifications', detail: 'Weekly summary', onPress: comingSoon },
+      { icon: 'mail-outline', label: 'Email Notifications', detail: 'Weekly summary', onPress: () => router.push('/email-notifications') },
     ],
   },
   {
