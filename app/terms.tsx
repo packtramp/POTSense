@@ -10,11 +10,19 @@ const SECTIONS = [
   },
   {
     title: 'Not Medical Advice',
-    body: 'POTSense is a health tracking tool, NOT a medical device. It does not provide medical advice, diagnosis, or treatment recommendations. The information displayed (including barometric pressure data, symptom patterns, and trend analysis) is for informational and personal tracking purposes only. Always consult a qualified healthcare provider for medical decisions.',
+    body: 'POTSense is a personal health tracking tool, NOT a medical device. It does not provide medical advice, diagnosis, or treatment recommendations. The information displayed (including barometric pressure data, symptom patterns, and trend analysis) is for informational and personal tracking purposes only. Always consult a qualified healthcare provider for medical decisions. The creator of POTSense is not a medical professional.',
   },
   {
     title: 'Use at Your Own Risk',
     body: 'You use POTSense at your own risk. We make no guarantees about the accuracy of barometric pressure data, weather information, or any correlations displayed. Do not make medical decisions based solely on information from this app.',
+  },
+  {
+    title: 'No Warranty',
+    body: 'POTSense is provided "as is" without warranty of any kind. We do not guarantee that the app will be error-free, uninterrupted, or that any defects will be corrected. Use of the app is at your sole risk.',
+  },
+  {
+    title: 'Limitation of Liability',
+    body: 'To the fullest extent permitted by law, POTSense and its creator shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the app, including but not limited to health decisions made based on app data.',
   },
   {
     title: 'Account Responsibility',
@@ -25,12 +33,16 @@ const SECTIONS = [
     body: 'When you invite a partner to access your data, you grant them permission to view your episode logs, daily tracker entries, and trigger responses. You can revoke partner access at any time from your settings.',
   },
   {
+    title: 'Aggregate Data Use',
+    body: 'We may use anonymized, aggregate data from all users to study POTS symptoms, triggers, and patterns. This helps improve the app and may contribute to broader understanding of POTS. Your personal name, email, and identifying information will never be included in aggregate data or shared with third parties.',
+  },
+  {
     title: 'Data Accuracy',
     body: 'While we strive for accuracy, POTSense relies on third-party APIs for weather and pressure data. We are not responsible for inaccuracies in this data. Episode logs and trigger responses reflect what you enter and are only as accurate as the information you provide.',
   },
   {
     title: 'Service Availability',
-    body: 'We aim to keep POTSense available at all times but cannot guarantee uninterrupted service. We may perform maintenance, updates, or changes that temporarily affect availability.',
+    body: 'We aim to keep POTSense available at all times but cannot guarantee uninterrupted service. We may perform maintenance, updates, or changes that temporarily affect availability. We reserve the right to modify or discontinue the app at any time.',
   },
   {
     title: 'Termination',
