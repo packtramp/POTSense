@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, getDoc } from 'firebase/firestore';
 import { getCurrentUser } from '@/lib/auth';
-import { db } from '@/lib/firebase';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Colors } from '@/constants/Colors';
 
 const FREE_FEATURES = [
@@ -37,11 +36,9 @@ export default function SubscriptionScreen() {
 
   useEffect(() => {
     if (!user) return;
-    getDoc(doc(db, 'users', user.uid)).then((snap) => {
-      if (snap.exists() && snap.data().premiumStatus === 'premium') {
-        setPlan('premium');
-      }
-    }).catch(() => {});
+    checkPremiumStatus(user.uid).then((premium) => {
+      if (premium) setPlan('premium');
+    });
   }, []);
 
   if (!user) { router.replace('/login'); return null; }

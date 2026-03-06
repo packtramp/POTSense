@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescription } from '@/lib/weather';
 import { getUserReferralCode } from '@/lib/referrals';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Alert, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -179,16 +180,18 @@ export default function HomeScreen() {
       })
       .catch(() => {});
 
-    // Load user settings (disabled trackers + premium)
+    // Load user settings (disabled trackers)
     getDoc(doc(db, 'users', user.uid))
       .then((snap) => {
         if (snap.exists()) {
           const data = snap.data();
           setDisabledTrackers(data.settings?.disabledTrackers || []);
-          setIsPremium(data.premiumStatus === 'premium');
         }
       })
       .catch(() => {});
+
+    // Check premium status (supports partner-linked premium)
+    checkPremiumStatus(user.uid).then(setIsPremium);
   }, []);
 
   // Fetch weather + referral code + beta banner state on mount

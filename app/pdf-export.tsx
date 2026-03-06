@@ -7,6 +7,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Colors } from '@/constants/Colors';
 
 type RangeOption = '7' | '30' | '90' | 'all';
@@ -252,9 +253,7 @@ export default function PDFExport() {
   useEffect(() => {
     const user = getCurrentUser();
     if (!user) return;
-    getDoc(doc(db, 'users', user.uid)).then((snap) => {
-      if (snap.exists() && snap.data()?.premiumStatus === 'premium') setIsPremium(true);
-    }).catch(() => {});
+    checkPremiumStatus(user.uid).then(setIsPremium);
   }, []);
 
   const fetchEpisodes = useCallback(async () => {

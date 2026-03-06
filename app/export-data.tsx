@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs, doc, getDoc, query, where, Timestamp } from 'firebase/firestore';
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/firebase';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Colors } from '@/constants/Colors';
 
 function alert(title: string, message: string) {
@@ -22,14 +23,11 @@ export default function ExportData() {
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      getDocs(collection(db, 'users', user.uid, 'episodes')),
-      getDoc(doc(db, 'users', user.uid)),
-    ]).then(([episodesSnap, userSnap]) => {
+    getDocs(collection(db, 'users', user.uid, 'episodes')).then((episodesSnap) => {
       setEpisodeCount(episodesSnap.size);
-      if (userSnap.exists() && userSnap.data()?.premiumStatus === 'premium') setIsPremium(true);
       setLoading(false);
     }).catch(() => setLoading(false));
+    checkPremiumStatus(user.uid).then(setIsPremium);
   }, []);
 
   const handleExport = async () => {

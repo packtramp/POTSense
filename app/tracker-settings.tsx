@@ -18,6 +18,7 @@ import {
   TRACKER_CATEGORIES,
   DailyTracker,
 } from '@/constants/dailyTrackers';
+import { checkPremiumStatus } from '@/lib/premium';
 
 export default function TrackerSettingsScreen() {
   const router = useRouter();
@@ -32,10 +33,10 @@ export default function TrackerSettingsScreen() {
       if (snap.exists()) {
         const data = snap.data();
         setDisabledKeys(data.settings?.disabledTrackers || []);
-        setIsPremium(data.premiumStatus === 'premium');
       }
       setLoaded(true);
     }).catch(() => setLoaded(true));
+    checkPremiumStatus(user.uid).then(setIsPremium);
   }, []);
 
   const toggleTracker = async (key: string, enabled: boolean) => {

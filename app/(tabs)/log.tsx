@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { trendArrow } from '@/lib/weather';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Colors } from '@/constants/Colors';
 
 const SEVERITY_EMOJI = ['', '😕', '😐', '😟', '😣', '😵'];
@@ -33,9 +34,8 @@ export default function LogScreen() {
       const user = getCurrentUser();
       if (!user) return;
 
-      // Check premium status
-      getDoc(doc(db, 'users', user.uid)).then((snap) => {
-        const premium = snap.exists() && snap.data()?.premiumStatus === 'premium';
+      // Check premium status (supports partner-linked premium)
+      checkPremiumStatus(user.uid).then((premium) => {
         setIsPremium(premium);
 
         // Free users: 30-day history only

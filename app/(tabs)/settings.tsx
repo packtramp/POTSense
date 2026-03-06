@@ -8,6 +8,7 @@ import { collection, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase
 import { signOut, getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/firebase';
 import { isAdmin } from '@/lib/admin';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Colors } from '@/constants/Colors';
 import { APP_VERSION } from '@/constants/version';
 
@@ -360,11 +361,12 @@ export default function SettingsScreen() {
         if (snap.exists()) {
           const data = snap.data();
           setUserSettings(data.settings || {});
-          const premium = data.premiumStatus === 'premium';
-          setIsPremium(premium);
-          setPlanLabel(premium ? 'Premium' : 'Free Plan');
         }
       }).catch(() => {});
+      checkPremiumStatus(user.uid).then((premium) => {
+        setIsPremium(premium);
+        setPlanLabel(premium ? 'Premium' : 'Free Plan');
+      });
     }, [user?.uid])
   );
 

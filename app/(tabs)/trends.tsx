@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { Colors } from '@/constants/Colors';
 import PressureChart, { PressurePoint } from '@/components/PressureChart';
 import { getCurrentLocation, fetchHistoricalPressure, HourlyPressure } from '@/lib/weather';
+import { checkPremiumStatus } from '@/lib/premium';
 
 type RangeKey = '7d' | '30d' | '90d' | 'ytd' | '1y' | 'all';
 const RANGES: { key: RangeKey; label: string; days: number; premium?: boolean }[] = [
@@ -70,10 +71,8 @@ export default function TrendsScreen() {
 
       setLoading(true);
 
-      // Check premium status
-      getDoc(doc(db, 'users', user.uid)).then((snap) => {
-        if (snap.exists() && snap.data()?.premiumStatus === 'premium') setIsPremium(true);
-      }).catch(() => {});
+      // Check premium status (supports partner-linked premium)
+      checkPremiumStatus(user.uid).then(setIsPremium);
 
       const episodesRef = collection(db, 'patients', user.uid, 'episodes');
 

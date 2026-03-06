@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { getLinkedPatient } from '@/lib/partners';
 import { getWeatherForCurrentLocation, WeatherData } from '@/lib/weather';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Colors } from '@/constants/Colors';
 import SwipeQuestionnaire, { QuestionnaireResult } from '@/components/SwipeQuestionnaire';
 
@@ -60,10 +61,8 @@ export default function EpisodeModal() {
         if (data?.settings?.disabledCards) {
           setDisabledCards(data.settings.disabledCards);
         }
-        if (data?.premiumStatus === 'premium') {
-          setIsPremium(true);
-        }
       }).catch(() => {});
+      checkPremiumStatus(user.uid).then(setIsPremium);
 
       // Check if this user is a partner — episodes save to patient's collection
       getLinkedPatient(user.uid).then((result) => {

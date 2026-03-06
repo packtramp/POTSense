@@ -6,6 +6,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { CARD_CATEGORIES, getAllItemsInCategory, getTotalEnabledCount } from '@/constants/swipeCards';
+import { checkPremiumStatus } from '@/lib/premium';
 import { Colors } from '@/constants/Colors';
 
 export default function QuestionnaireSettings() {
@@ -23,8 +24,8 @@ export default function QuestionnaireSettings() {
       const data = snap.data();
       if (data?.settings?.disabledCategories) setDisabledCategories(data.settings.disabledCategories);
       if (data?.settings?.disabledCards) setDisabledCards(data.settings.disabledCards);
-      if (data?.premiumStatus === 'premium') setIsPremium(true);
     }).catch(() => {});
+    checkPremiumStatus(user.uid).then(setIsPremium);
   }, []);
 
   const saveSettings = async (newCategories: string[], newCards: string[]) => {
