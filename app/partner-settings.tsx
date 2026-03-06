@@ -13,6 +13,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import {
   generateInviteCode,
@@ -48,6 +50,7 @@ export default function PartnerSettings() {
   const user = getCurrentUser();
 
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
   const [role, setRole] = useState<'member' | 'partner'>('member');
 
   // Patient mode state
@@ -75,6 +78,11 @@ export default function PartnerSettings() {
     if (!user) return;
     setLoading(true);
     try {
+      // Check premium status
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const data = snap.data();
+      setIsPremium(data?.premiumStatus === 'premium');
+
       const userRole = await getUserRole(user.uid);
       setRole(userRole);
 
@@ -195,7 +203,18 @@ export default function PartnerSettings() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {role === 'partner' ? (
+        {!isPremium ? (
+          <View style={styles.premiumGate}>
+            <Ionicons name="lock-closed" size={48} color={Colors.textMuted} />
+            <Text style={styles.premiumGateTitle}>Premium Feature</Text>
+            <Text style={styles.premiumGateText}>
+              Partner & Caregiver accounts let someone you trust log episodes on your behalf and monitor your data.
+            </Text>
+            <Pressable style={styles.premiumGateButton} onPress={() => router.push('/subscription')}>
+              <Text style={styles.premiumGateButtonText}>View Premium Plans</Text>
+            </Pressable>
+          </View>
+        ) : role === 'partner' ? (
           /* ── PARTNER MODE ── */
           <>
             {linkedPatient ? (
@@ -529,4 +548,13 @@ const styles = StyleSheet.create({
   },
   unlinkText: { color: Colors.red, fontSize: 15, fontWeight: '600' },
   emptyText: { color: Colors.textMuted, fontSize: 13, fontStyle: 'italic' },
+
+  // Premium gate
+  premiumGate: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 },
+  premiumGateTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', marginTop: 16, marginBottom: 8 },
+  premiumGateText: { color: Colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  premiumGateButton: {
+    backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32,
+  },
+  premiumGateButtonText: { color: Colors.text, fontSize: 16, fontWeight: '700' },
 });
