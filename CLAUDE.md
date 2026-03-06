@@ -4,7 +4,7 @@
 # POTSense
 
 ## What
-POTS episode tracker with auto barometric pressure capture, Tinder-style swipe questionnaire, partner accounts, daily trackers, and trend analysis. App #1 in a small portfolio strategy.
+POTS episode tracker with auto barometric pressure capture, trigger checklist, partner accounts, daily trackers, and trend analysis. App #1 in a small portfolio strategy.
 
 ## Stack
 - Expo SDK 55 (React Native) → iOS + Android + Web
@@ -17,17 +17,17 @@ POTS episode tracker with auto barometric pressure capture, Tinder-style swipe q
 - TypeScript
 
 ## Pricing ($4.99/mo or $39.99/yr, save 33%)
-- **Free:** Unlimited logging, swipe questionnaire, 5 daily trackers, 30-day history, pressure alerts, news feed, 30-day PDF report, JSON export
+- **Free:** Unlimited logging, trigger tracking, 5 daily trackers, 30-day history, pressure alerts, news feed, 30-day PDF report, JSON export
 - **Premium:** All cards + branches, custom trackers, unlimited history + calendar, partner accounts, trends/correlations, custom PDF, CSV export, questionnaire customization
 
 ## Key Design Decisions
 - **Dark mode default** (#0F0F0F bg), emoji severity (😕😐😟😣😵 — no smiley, even mild isn't happy)
 - **5 bottom tabs:** Home, Log, Trends, News, Settings
-- **Swipe convention:** RIGHT = always positive/green, LEFT = always concerning/orange
-- **Episode flow:** Severity → Symptoms → Notes → "Next: Quick Check" → Swipe cards → Save. "Skip & Save" at bottom.
-- **50+ swipe cards** across 8 categories (hydration, diet, sleep, activity, environment, health, mental, lifestyle)
-- **Branching cards:** LEFT triggers drill-down (bath → type/temp/duration/chair, caffeine → type/amount, exercise → type/duration/position, etc.)
-- **Settings toggles:** Users enable/disable entire categories or individual cards
+- **Trigger convention:** RIGHT = always positive/green, LEFT = always concerning/orange
+- **Episode flow:** Severity → Symptoms → Notes → "Next: Quick Check" → Triggers → Save. "Skip & Save" at bottom.
+- **50+ triggers** across 8 categories (hydration, diet, sleep, activity, environment, health, mental, lifestyle)
+- **Branching triggers:** LEFT triggers drill-down (bath → type/temp/duration/chair, caffeine → type/amount, exercise → type/duration/position, etc.)
+- **Settings toggles:** Users enable/disable entire categories or individual triggers
 - **Daily trackers:** Tap to cycle (--→Low→Med→High or --→No→Yes), saves to Firestore dailyLogs
 - **Partner accounts (premium):** 6-digit invite code, push notifs, can log/swipe
 - **Super Admin:** robdorsett@gmail.com gets admin panel in Settings
@@ -37,7 +37,7 @@ POTS episode tracker with auto barometric pressure capture, Tinder-style swipe q
 ## Docs
 | File | Content |
 |------|---------|
-| `docs/DESIGN-SPEC.md` | Full feature spec, swipe cards, free/premium wall, payments |
+| `docs/DESIGN-SPEC.md` | Full feature spec, triggers, free/premium wall, payments |
 | `docs/SCREENS.md` | 15 screen wireframes, tab bar, user journey maps |
 | `docs/ARCHITECTURE.md` | System diagram, data flows, API integrations, build phases |
 | `docs/FIRESTORE-MODEL.md` | Document schemas, security rules, indexes, cost estimation |
@@ -49,7 +49,7 @@ POTS episode tracker with auto barometric pressure capture, Tinder-style swipe q
 ## Build Phases
 1. ~~Scaffold + 5-tab nav + Firebase Auth + basic episode logging (modal)~~ DONE
 2. ~~Weather + Location auto-capture (Open-Meteo)~~ DONE
-3. ~~Swipe Questionnaire (50+ cards, 8 categories, branching, settings toggles)~~ DONE
+3. ~~Triggers (50+ items, 8 categories, branching, settings toggles)~~ DONE
 4. ~~Daily Trackers (tap-to-cycle on Home, Firestore dailyLogs)~~ DONE
 5. ~~News Feed (4 RSS sources — Dysautonomia Intl, Dysautonomia Project, PoTS UK, Cleveland Clinic)~~ DONE
 6. ~~Partner accounts + invite codes~~ DONE
@@ -76,14 +76,14 @@ POTS episode tracker with auto barometric pressure capture, Tinder-style swipe q
 - `lib/weather.ts` — Open-Meteo client (pressure, temp, humidity, 3h trend, historical hourly)
 - `lib/admin.ts` — Admin email check
 - `lib/partners.ts` — Partner invite codes, link/unlink, role detection
-- `constants/swipeCards.ts` — 50+ config-driven cards, 8 categories, branching
+- `constants/swipeCards.ts` — 50+ config-driven triggers, 8 categories, branching
 - `constants/Colors.ts` — Dark theme palette
-- `components/SwipeQuestionnaire.tsx` — Card UI with progress, branching, skip
+- `components/SwipeQuestionnaire.tsx` — Trigger UI with progress, branching, skip
 - `components/PressureChart.tsx` — SVG pressure chart with episode dots overlay
 - `app/episode-detail.tsx` — Full episode view with delete
 - `app/pdf-export.tsx` — Doctor PDF report generation
 - `app/partner-settings.tsx` — Partner invite/link management
-- `app/questionnaire-settings.tsx` — Toggle categories/individual cards
+- `app/questionnaire-settings.tsx` — Toggle categories/individual triggers
 
 ## Current Status
 **Phase:** Phases 1-10 COMPLETE (except 7: Premium/RevenueCat). Next: Phase 7 (Premium + RevenueCat) or Phase 11 (Notifications).

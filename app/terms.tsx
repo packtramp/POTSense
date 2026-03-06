@@ -22,11 +22,11 @@ const SECTIONS = [
   },
   {
     title: 'Partner Accounts',
-    body: 'When you invite a partner to access your data, you grant them permission to view your episode logs, daily tracker entries, and questionnaire responses. You can revoke partner access at any time from your settings.',
+    body: 'When you invite a partner to access your data, you grant them permission to view your episode logs, daily tracker entries, and trigger responses. You can revoke partner access at any time from your settings.',
   },
   {
     title: 'Data Accuracy',
-    body: 'While we strive for accuracy, POTSense relies on third-party APIs for weather and pressure data. We are not responsible for inaccuracies in this data. Episode logs and questionnaire responses reflect what you enter and are only as accurate as the information you provide.',
+    body: 'While we strive for accuracy, POTSense relies on third-party APIs for weather and pressure data. We are not responsible for inaccuracies in this data. Episode logs and trigger responses reflect what you enter and are only as accurate as the information you provide.',
   },
   {
     title: 'Service Availability',

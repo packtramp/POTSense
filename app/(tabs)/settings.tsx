@@ -81,7 +81,7 @@ function getSections(router: any, settings: UserSettings, planLabel: string, isP
     title: 'TRACKING',
     rows: [
       { icon: 'list-outline', label: 'Daily Trackers', detail: 'Customize which to show', onPress: () => router.push('/tracker-settings') },
-      { icon: 'albums-outline', label: 'Questionnaire', detail: 'Choose your cards', onPress: () => router.push('/questionnaire-settings') },
+      { icon: 'albums-outline', label: 'Triggers', detail: 'Choose your triggers', onPress: () => router.push('/questionnaire-settings') },
       { icon: 'resize-outline', label: 'Units', detail: unitsDetail, onPress: () => router.push('/units-settings') },
     ],
   },

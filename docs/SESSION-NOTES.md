@@ -20,11 +20,11 @@
 - **No sounds/haptics** — visual feedback only
 
 ### UX Decisions
-- **Logging flow:** One-tap → Tinder-style swipe questionnaire → severity emoji → notes → save
-- **Swipe card layout:** Binary swipe top half, grayed exact field middle (premium), skip/NA bottom
-- **Smart pre-fill:** Daily log data biases swipe cards toward likely answer
-- **Branching cards:** YES on bath/shower → bath or shower? → hot or warm? (same for caffeine, exercise, alcohol, meds)
-- **Free:** ~10 core binary cards. Premium: all cards + branches + exact values + customize
+- **Logging flow:** One-tap → trigger checklist → severity emoji → notes → save
+- **Trigger layout:** Binary swipe top half, grayed exact field middle (premium), skip/NA bottom
+- **Smart pre-fill:** Daily log data biases triggers toward likely answer
+- **Branching triggers:** YES on bath/shower → bath or shower? → hot or warm? (same for caffeine, exercise, alcohol, meds)
+- **Free:** ~10 core triggers. Premium: all triggers + branches + exact values + customize
 - **Daily trackers:** Running log on home screen + evening check-in reminder. 5 free (binary), ~15 premium (exact values, customizable)
 - **Bath/shower/temp** added as daily tracker + episode card
 - **History:** Calendar (multiple dots per day per episode) + timeline toggle. Rich cards with questionnaire icons.
@@ -40,8 +40,8 @@
 - Partner gets push notification when member logs episode
 
 ### Free vs Premium Wall
-- **Free:** Unlimited logging, binary swipes (10 cards), 5 daily trackers (binary), 30-day visible history (data hidden not deleted), pressure alerts, news feed
-- **Premium:** Exact values, all cards + branches, custom trackers (~15), unlimited history, partner accounts, trends/charts/correlations, clinical PDF + CSV export, questionnaire customization, "suggest a question" button
+- **Free:** Unlimited logging, trigger tracking (10 triggers), 5 daily trackers (binary), 30-day visible history (data hidden not deleted), pressure alerts, news feed
+- **Premium:** Exact values, all triggers + branches, custom trackers (~15), unlimited history, partner accounts, trends/charts/correlations, clinical PDF + CSV export, questionnaire customization, "suggest a question" button
 
 ### Statistics (v1)
 - Percentage-based correlations: "72% of episodes had LOW water"
@@ -100,11 +100,11 @@ Phase 1 COMPLETE — deployed to potsense.org. Phase 2 (Weather + Location) next
 - Episode cards in Log tab show weather data
 - Weather badge on details screen during episode logging
 
-### Phase 3: Swipe Questionnaire
-- Built 50+ swipe cards across 8 categories: hydration, diet, sleep, activity, environment, health, mental, lifestyle
+### Phase 3: Trigger Checklist
+- Built 50+ triggers across 8 categories: hydration, diet, sleep, activity, environment, health, mental, lifestyle
 - Deep branching: bath→type/temp/duration/chair, caffeine→type/amount, exercise→type/duration/position, illness→type/fever, etc.
 - Removed premium gating per Roby's direction ("build them ALL, choose free later")
-- Episode flow: Severity → Symptoms → Notes → "Next: Quick Check" → Swipe cards → Save. "Skip & Save" at bottom.
+- Episode flow: Severity → Symptoms → Notes → "Next: Quick Check" → Triggers → Save. "Skip & Save" at bottom.
 - Category label shown above each card during swipe
 - "Skip All" button in header to finish questionnaire early
 - Questionnaire answers saved as map in Firestore episode doc
@@ -126,7 +126,7 @@ Phase 1 COMPLETE — deployed to potsense.org. Phase 2 (Weather + Location) next
 ### Design Updates
 - Severity emoji changed: mild = 😕 (not 😊 — "no episode is smiley")
 - `getSections()` function in settings instead of static const (needed router access)
-- Removed `premium: boolean` from swipe cards — all available for now
+- Removed `premium: boolean` from triggers — all available for now
 
 ### Deployed
 All changes live at potsense.org

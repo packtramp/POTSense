@@ -35,7 +35,7 @@ export default function AboutScreen() {
               POTSense helps people with Postural Orthostatic Tachycardia Syndrome track episodes, identify triggers, and share data with their healthcare providers.
             </Text>
             <Text style={[styles.descText, { marginTop: 10 }]}>
-              Track barometric pressure changes, log symptoms with our swipe questionnaire, and discover patterns in your condition over time.
+              Track barometric pressure changes, log symptoms with our trigger checklist, and discover patterns in your condition over time.
             </Text>
           </View>
         </View>

@@ -76,7 +76,7 @@ export default function DeleteAccount() {
         <View style={styles.warningList}>
           <Text style={styles.warningItem}>All your episode logs</Text>
           <Text style={styles.warningItem}>All daily tracker entries</Text>
-          <Text style={styles.warningItem}>All questionnaire responses</Text>
+          <Text style={styles.warningItem}>All trigger responses</Text>
           <Text style={styles.warningItem}>Your profile and settings</Text>
           <Text style={styles.warningItem}>Partner connections</Text>
           <Text style={styles.warningItem}>Your login credentials</Text>

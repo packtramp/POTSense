@@ -9,24 +9,25 @@ import { Colors } from '@/constants/Colors';
 
 const FREE_FEATURES = [
   'Unlimited episode logging',
-  'Swipe questionnaire (core cards)',
+  'Trigger tracking (core triggers)',
   '5 daily trackers',
   '30-day history',
-  'Barometric pressure alerts',
   'News feed',
-  '30-day PDF report',
+  '30-day episode PDF report',
   'JSON data export',
 ];
 
 const PREMIUM_FEATURES = [
-  'All questionnaire cards + branches',
+  'All triggers + follow-up questions',
   'Custom daily trackers',
   'Unlimited history + calendar view',
   'Partner accounts (share with caregivers)',
+  'Barometric pressure alerts',
   'Trends & correlation analysis',
   'Custom PDF reports',
   'CSV data export',
-  'Questionnaire customization',
+  'Trigger customization',
+  'Weekly email summary',
   'Priority support',
 ];
 
@@ -120,11 +121,11 @@ export default function SubscriptionScreen() {
       {/* Coming Soon Button */}
       <View style={styles.comingSoonButton}>
         <Ionicons name="time-outline" size={20} color={Colors.textMuted} />
-        <Text style={styles.comingSoonText}>In-App Purchases Coming Soon</Text>
+        <Text style={styles.comingSoonText}>Subscriptions Coming Soon</Text>
       </View>
 
       <Text style={styles.hint}>
-        Premium subscriptions will be available through the App Store, Google Play, and web. Your support helps us keep building for the POTS community.
+        Premium subscriptions will be available soon. All premium features are free during beta! Your support helps us keep building for the POTS community.
       </Text>
     </ScrollView>
   );

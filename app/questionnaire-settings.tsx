@@ -69,14 +69,14 @@ export default function QuestionnaireSettings() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Questionnaire</Text>
+        <Text style={styles.headerTitle}>Triggers</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.subtitle}>{enabledCount} questions enabled</Text>
+        <Text style={styles.subtitle}>{enabledCount} triggers enabled</Text>
         <Text style={styles.hint}>
-          Toggle entire categories or expand to control individual questions.
+          Toggle entire categories or expand to control individual triggers.
         </Text>
 
         {CARD_CATEGORIES.map((cat) => {

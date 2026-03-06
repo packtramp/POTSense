@@ -6,7 +6,7 @@ import { Colors } from '@/constants/Colors';
 const SECTIONS = [
   {
     title: 'Data Collection',
-    body: 'POTSense collects only the information you provide: your email address, display name, episode logs, daily tracker entries, and questionnaire responses. We do not collect data passively or use tracking cookies.',
+    body: 'POTSense collects only the information you provide: your email address, display name, episode logs, daily tracker entries, and trigger responses. We do not collect data passively or use tracking cookies.',
   },
   {
     title: 'Location Data',

@@ -128,7 +128,7 @@ export default function ExportData() {
             <Text style={styles.infoTitle}>{isPremium ? 'Export All Your Data' : 'Export Recent Data'}</Text>
             <Text style={styles.infoText}>
               {isPremium
-                ? 'Download a complete copy of your POTSense data as a JSON file. This includes your profile, all episode logs, questionnaire responses, and daily tracker entries.'
+                ? 'Download a complete copy of your POTSense data as a JSON file. This includes your profile, all episode logs, trigger responses, and daily tracker entries.'
                 : 'Download your last 30 days of POTSense data as a JSON file. Upgrade to Premium for unlimited history export.'}
             </Text>
           </View>
