@@ -10,7 +10,9 @@ import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescripti
 import { getUserReferralCode } from '@/lib/referrals';
 import { Alert, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
+import { getEnabledTrackers, DailyTracker } from '@/constants/dailyTrackers';
 
 function getShareText(refCode: string | null) {
   const url = refCode ? `www.POTSense.org/?ref=${refCode}` : 'www.POTSense.org';
@@ -103,13 +105,8 @@ function getAllShareLinks(refCode: string | null) {
 
 const PRIMARY_SHARE_KEYS = ['facebook', 'sms', 'mail'];
 
-const DAILY_TRACKERS = [
-  { key: 'water', emoji: '💧', label: 'Water', levels: ['--', 'Low', 'Med', 'High'] },
-  { key: 'salt', emoji: '🧂', label: 'Salt', levels: ['--', 'Low', 'Med', 'High'] },
-  { key: 'sleep', emoji: '😴', label: 'Sleep', levels: ['--', 'Bad', 'OK', 'Good'] },
-  { key: 'meds', emoji: '💊', label: 'Meds', levels: ['--', 'No', 'Yes'] },
-  { key: 'exercise', emoji: '🏃', label: 'Exercise', levels: ['--', 'No', 'Light', 'Hard'] },
-];
+// Daily trackers are now loaded from constants/dailyTrackers.ts
+// Filtered by user settings (disabled keys) and premium status
 
 function getTodayKey() {
   const d = new Date();
@@ -127,6 +124,9 @@ export default function HomeScreen() {
   const [refCode, setRefCode] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [disabledTrackers, setDisabledTrackers] = useState<string[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
+  const [betaBannerDismissed, setBetaBannerDismissed] = useState(true); // default hidden until loaded
 
   const loadData = useCallback(() => {
     const user = getCurrentUser();
@@ -178,9 +178,20 @@ export default function HomeScreen() {
         }
       })
       .catch(() => {});
+
+    // Load user settings (disabled trackers + premium)
+    getDoc(doc(db, 'users', user.uid))
+      .then((snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setDisabledTrackers(data.settings?.disabledTrackers || []);
+          setIsPremium(data.premiumStatus === 'premium');
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  // Fetch weather + referral code on mount
+  // Fetch weather + referral code + beta banner state on mount
   useEffect(() => {
     getWeatherForCurrentLocation().then((w) => {
       setWeather(w);
@@ -190,6 +201,9 @@ export default function HomeScreen() {
     if (user) {
       getUserReferralCode(user.uid).then(setRefCode).catch(() => {});
     }
+    AsyncStorage.getItem('betaBannerDismissed').then((val) => {
+      setBetaBannerDismissed(val === 'true');
+    }).catch(() => setBetaBannerDismissed(false));
   }, []);
 
   // Refresh episode stats + daily log when tab is focused
@@ -205,7 +219,14 @@ export default function HomeScreen() {
     setTimeout(() => setRefreshing(false), 1000);
   }, [loadData]);
 
-  const cycleTracker = (tracker: typeof DAILY_TRACKERS[0]) => {
+  const dismissBetaBanner = () => {
+    setBetaBannerDismissed(true);
+    AsyncStorage.setItem('betaBannerDismissed', 'true').catch(() => {});
+  };
+
+  const activeTrackers = getEnabledTrackers(disabledTrackers, isPremium);
+
+  const cycleTracker = (tracker: DailyTracker) => {
     const currentVal = trackerValues[tracker.key] || '--';
     const currentIdx = tracker.levels.indexOf(currentVal);
     const nextIdx = (currentIdx + 1) % tracker.levels.length;
@@ -227,9 +248,9 @@ export default function HomeScreen() {
 
   const getTrackerColor = (value: string) => {
     if (value === '--') return Colors.textMuted;
-    if (value === 'Low' || value === 'Bad' || value === 'No') return Colors.orange;
-    if (value === 'High' || value === 'Good' || value === 'Yes' || value === 'Hard') return Colors.green;
-    return Colors.primary;
+    if (['Low', 'Bad', 'No', 'Poor', 'None', 'Short', '0'].includes(value)) return Colors.orange;
+    if (['High', 'Good', 'Yes', 'Hard', 'Long', '3+', '2+'].includes(value)) return Colors.green;
+    return Colors.primary; // Med, OK, Mild, Light, 1, 2, etc.
   };
 
   return (
@@ -238,6 +259,24 @@ export default function HomeScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
     >
+      {/* Beta Banner */}
+      {!betaBannerDismissed && (
+        <View style={styles.betaBanner}>
+          <View style={styles.betaBannerContent}>
+            <Text style={styles.betaBannerBadge}>BETA</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.betaBannerTitle}>Early Access — Free During Beta</Text>
+              <Text style={styles.betaBannerText}>
+                All premium features are free during beta! Once we officially launch, premium features will require a subscription.
+              </Text>
+            </View>
+            <Pressable onPress={dismissBetaBanner} hitSlop={12}>
+              <Ionicons name="close" size={18} color={Colors.textMuted} />
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* Weather Card */}
       <View style={styles.weatherCard}>
         <Text style={styles.weatherTitle}>🌡️ Current Conditions</Text>
@@ -315,7 +354,7 @@ export default function HomeScreen() {
       {/* Daily Trackers */}
       <Text style={styles.sectionTitle}>Today's Tracking</Text>
       <View style={styles.trackerRow}>
-        {DAILY_TRACKERS.map((t) => {
+        {activeTrackers.map((t) => {
           const val = trackerValues[t.key] || '--';
           const color = getTrackerColor(val);
           return (
@@ -477,4 +516,42 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   shareSheetCancelText: { color: Colors.textMuted, fontSize: 15 },
+
+  // Beta banner
+  betaBanner: {
+    backgroundColor: 'rgba(74,144,226,0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(74,144,226,0.25)',
+    padding: 14,
+    marginBottom: 16,
+  },
+  betaBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  betaBannerBadge: {
+    backgroundColor: Colors.primary,
+    color: Colors.text,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginTop: 2,
+  },
+  betaBannerTitle: {
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  betaBannerText: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+  },
 });

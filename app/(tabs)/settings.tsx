@@ -49,7 +49,7 @@ function getSections(router: any): SettingsSection[] { return [
   {
     title: 'TRACKING',
     rows: [
-      { icon: 'list-outline', label: 'Daily Trackers', detail: 'Customize which to show', onPress: comingSoon },
+      { icon: 'list-outline', label: 'Daily Trackers', detail: 'Customize which to show', onPress: () => router.push('/tracker-settings') },
       { icon: 'albums-outline', label: 'Questionnaire', detail: 'Choose your cards', onPress: () => router.push('/questionnaire-settings') },
       { icon: 'resize-outline', label: 'Units', detail: '°F • inHg' },
     ],

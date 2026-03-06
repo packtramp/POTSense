@@ -37,9 +37,10 @@ export default function TabLayout() {
         headerStyle: { backgroundColor: Colors.background },
         headerTintColor: Colors.text,
         headerRight: () => (
-          <Text style={{ color: Colors.textMuted, fontSize: 11, marginRight: 14 }}>
-            v{APP_VERSION}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 14, gap: 6 }}>
+            <Text style={{ color: '#4A90E2', fontSize: 9, fontWeight: '800', backgroundColor: 'rgba(74,144,226,0.15)', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 3, overflow: 'hidden', letterSpacing: 0.5 }}>BETA</Text>
+            <Text style={{ color: Colors.textMuted, fontSize: 11 }}>v{APP_VERSION}</Text>
+          </View>
         ),
         // Partner banner in header — show patient name on all tabs except news
         headerTitle: () => {

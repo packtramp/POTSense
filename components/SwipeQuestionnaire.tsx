@@ -22,6 +22,7 @@ type Props = {
   onClose: () => void;
   disabledCategories?: string[];
   disabledCards?: string[];
+  isPremium?: boolean;
 };
 
 export default function SwipeQuestionnaire({
@@ -29,6 +30,7 @@ export default function SwipeQuestionnaire({
   onClose,
   disabledCategories = [],
   disabledCards = [],
+  isPremium = false,
 }: Props) {
   const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set());
   const [cyclingValues, setCyclingValues] = useState<Record<string, number>>({}); // index into levels[]
@@ -178,6 +180,7 @@ export default function SwipeQuestionnaire({
             </Text>
             <View style={styles.chipGrid}>
               {group.chips.map((chip) => {
+                const isLocked = chip.premium && !isPremium;
                 const isActive = activeToggles.has(chip.id);
                 const isCycling = !!chip.levels;
                 const cycleIdx = cyclingValues[chip.id];
@@ -199,8 +202,10 @@ export default function SwipeQuestionnaire({
                     key={chip.id}
                     style={[
                       styles.toggleChip,
+                      // Premium locked chips: grayed out
+                      isLocked && styles.lockedChip,
                       // Regular toggles: colored by toggleColor
-                      !isCycling && isActive && (
+                      !isLocked && !isCycling && isActive && (
                         chip.toggleColor === 'bad' ? {
                           backgroundColor: Colors.orangeBg,
                           borderColor: Colors.orange,
@@ -210,28 +215,35 @@ export default function SwipeQuestionnaire({
                         } : styles.toggleChipActive
                       ),
                       // Cycling chips: colored border + tinted bg based on level
-                      isCycling && cycleColor ? {
+                      !isLocked && isCycling && cycleColor ? {
                         borderColor: cycleColor,
                         backgroundColor: cycleColor + '20',
                         borderStyle: 'solid' as any,
-                      } : isCycling ? styles.cyclingChip : null,
+                      } : !isLocked && isCycling ? styles.cyclingChip : null,
                     ]}
-                    onPress={() => handleToggle(chip)}
+                    onPress={() => !isLocked && handleToggle(chip)}
+                    disabled={isLocked}
                   >
-                    <Text style={styles.chipEmoji}>{chip.emoji}</Text>
+                    {isLocked && (
+                      <Ionicons name="lock-closed" size={12} color={Colors.textMuted} style={{ marginRight: -2 }} />
+                    )}
+                    <Text style={[styles.chipEmoji, isLocked && { opacity: 0.4 }]}>{chip.emoji}</Text>
                     <Text
                       style={[
                         styles.chipLabel,
-                        !isCycling && isActive && (
+                        isLocked && styles.lockedChipLabel,
+                        !isLocked && !isCycling && isActive && (
                           chip.toggleColor === 'bad' ? { color: Colors.orange, fontWeight: '600' as any }
                           : chip.toggleColor === 'neutral' ? { color: Colors.primary, fontWeight: '600' as any }
                           : styles.chipLabelActive
                         ),
-                        isCycling && cycleColor ? { color: cycleColor, fontWeight: '600' as any } : null,
+                        !isLocked && isCycling && cycleColor ? { color: cycleColor, fontWeight: '600' as any } : null,
                       ]}
                       numberOfLines={1}
                     >
-                      {isCycling && cycleVal
+                      {isLocked
+                      ? chip.label
+                      : isCycling && cycleVal
                       ? `${chip.label}: ${cycleVal}`
                       : hasFollowUp && isActive && (() => {
                           const pickers = conditionalPickersMap.get(chip.id) || [];
@@ -245,7 +257,7 @@ export default function SwipeQuestionnaire({
                       || chip.label}
                     </Text>
                     {/* Small dot indicator for chips with follow-ups */}
-                    {hasFollowUp && isActive && (
+                    {!isLocked && hasFollowUp && isActive && (
                       <View style={styles.followUpDot} />
                     )}
                   </Pressable>
@@ -399,6 +411,11 @@ const styles = StyleSheet.create({
   cyclingChip: {
     borderStyle: 'dashed' as any,
   },
+  lockedChip: {
+    opacity: 0.45,
+    borderStyle: 'dashed' as any,
+  },
+  lockedChipLabel: { color: Colors.textMuted, fontSize: 13 },
   chipEmoji: { fontSize: 16 },
   chipLabel: { color: Colors.textSecondary, fontSize: 13 },
   chipLabelActive: { color: Colors.green, fontWeight: '600' },

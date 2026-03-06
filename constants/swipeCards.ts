@@ -12,6 +12,7 @@ export type ToggleChip = {
   levels?: string[]; // If set, chip cycles through these values on tap instead of on/off
   colorScale?: 'severity' | 'inverse' | 'neutral' | 'blue'; // severity = green→yellow→orange, inverse = orange→yellow→green, neutral = always green, blue = brand blue throughout
   toggleColor?: 'good' | 'bad' | 'neutral'; // For binary chips: good=green, bad=orange, neutral=blue. Default=green (legacy)
+  premium?: boolean; // true = requires premium subscription (grayed out for free users)
 };
 
 export type QuantityPicker = {
@@ -30,68 +31,68 @@ export type QuantityPicker = {
 // ═══════════════════════════════════════════════════════════════
 
 export const TOGGLE_CHIPS: ToggleChip[] = [
-  // Hydration
+  // Hydration — water & salt are FREE
   { id: 'salt', label: 'Extra Salt', emoji: '🧂', category: 'hydration', toggleColor: 'good' },
   { id: 'water', label: 'Water (cups)', emoji: '💧', category: 'hydration', levels: ['0', '1-2', '3-4', '5-6', '7+'], colorScale: 'inverse' },
-  { id: 'electrolytes', label: 'Electrolytes', emoji: '⚡', category: 'hydration', levels: ['None', 'LMNT', 'Liquid IV', 'Nuun', 'Other'], colorScale: 'neutral' },
+  { id: 'electrolytes', label: 'Electrolytes', emoji: '⚡', category: 'hydration', levels: ['None', 'LMNT', 'Liquid IV', 'Nuun', 'Other'], colorScale: 'neutral', premium: true },
 
-  // Diet
-  { id: 'ate', label: 'Eaten Recently', emoji: '🍽️', category: 'diet', toggleColor: 'good' },
-  { id: 'alcohol', label: 'Alcohol', emoji: '🍷', category: 'diet', levels: ['0', '1', '2', '3+'] },
-  { id: 'caffeine_cups', label: 'Caffeine', emoji: '☕', category: 'diet', levels: ['0', '1', '2', '3+'] },
-  { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', levels: ['Coffee', 'Tea', 'Energy Drink', 'Soda'], colorScale: 'blue' },
-  { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', levels: ['0', '1', '2', '3+'] },
-  { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet', toggleColor: 'neutral' },
-  { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet', toggleColor: 'neutral' },
-  { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet', toggleColor: 'neutral' },
-  { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet', toggleColor: 'bad' },
+  // Diet — all PREMIUM
+  { id: 'ate', label: 'Eaten Recently', emoji: '🍽️', category: 'diet', toggleColor: 'good', premium: true },
+  { id: 'alcohol', label: 'Alcohol', emoji: '🍷', category: 'diet', levels: ['0', '1', '2', '3+'], premium: true },
+  { id: 'caffeine_cups', label: 'Caffeine', emoji: '☕', category: 'diet', levels: ['0', '1', '2', '3+'], premium: true },
+  { id: 'caffeine_type', label: 'Caffeine Type', emoji: '☕', category: 'diet', levels: ['Coffee', 'Tea', 'Energy Drink', 'Soda'], colorScale: 'blue', premium: true },
+  { id: 'sugary_drinks', label: 'Sugary Drinks', emoji: '🧃', category: 'diet', levels: ['0', '1', '2', '3+'], premium: true },
+  { id: 'carbs', label: 'Heavy Carbs', emoji: '🍞', category: 'diet', toggleColor: 'neutral', premium: true },
+  { id: 'gluten', label: 'Gluten', emoji: '🌾', category: 'diet', toggleColor: 'neutral', premium: true },
+  { id: 'dairy', label: 'Dairy', emoji: '🥛', category: 'diet', toggleColor: 'neutral', premium: true },
+  { id: 'histamine', label: 'High-Histamine', emoji: '⚠️', category: 'diet', toggleColor: 'bad', premium: true },
 
-  // Sleep
+  // Sleep — bad_sleep is FREE
   { id: 'bad_sleep', label: 'Bad Sleep', emoji: '😴', category: 'sleep', toggleColor: 'bad' },
-  { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep', toggleColor: 'good' },
+  { id: 'nap', label: 'Napped', emoji: '💤', category: 'sleep', toggleColor: 'good', premium: true },
 
-  // Activity
+  // Activity — exercise is FREE
   { id: 'exercise', label: 'Exercise', emoji: '🏃', category: 'activity', levels: ['None', 'Light', 'Moderate', 'Intense'], colorScale: 'blue' },
-  { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity', toggleColor: 'neutral' },
-  { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity', toggleColor: 'neutral' },
-  { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity', toggleColor: 'neutral' },
-  { id: 'bath', label: 'Bath/Shower', emoji: '🛁', category: 'activity', toggleColor: 'neutral' },
-  { id: 'stairs', label: 'Stairs', emoji: '🪜', category: 'activity', toggleColor: 'neutral' },
-  { id: 'driving', label: 'Long Drive', emoji: '🚗', category: 'activity', toggleColor: 'neutral' },
-  { id: 'sedentary', label: 'Sitting All Day', emoji: '🛋️', category: 'activity', toggleColor: 'bad' },
-  { id: 'standing', label: 'Long Standing', emoji: '🧍', category: 'activity', toggleColor: 'neutral' },
+  { id: 'gotup_fast', label: 'Got Up Fast', emoji: '⬆️', category: 'activity', toggleColor: 'neutral', premium: true },
+  { id: 'position_change', label: 'Position Change', emoji: '🔄', category: 'activity', toggleColor: 'neutral', premium: true },
+  { id: 'bending', label: 'Bending Over', emoji: '🏋️', category: 'activity', toggleColor: 'neutral', premium: true },
+  { id: 'bath', label: 'Bath/Shower', emoji: '🛁', category: 'activity', toggleColor: 'neutral', premium: true },
+  { id: 'stairs', label: 'Stairs', emoji: '🪜', category: 'activity', toggleColor: 'neutral', premium: true },
+  { id: 'driving', label: 'Long Drive', emoji: '🚗', category: 'activity', toggleColor: 'neutral', premium: true },
+  { id: 'sedentary', label: 'Sitting All Day', emoji: '🛋️', category: 'activity', toggleColor: 'bad', premium: true },
+  { id: 'standing', label: 'Long Standing', emoji: '🧍', category: 'activity', toggleColor: 'neutral', premium: true },
 
-  // Environment
-  { id: 'hot', label: 'Been in Heat', emoji: '🔥', category: 'environment', toggleColor: 'neutral' },
-  { id: 'temp_change', label: 'Temp Change', emoji: '🌡️', category: 'environment', toggleColor: 'neutral' },
-  { id: 'humidity', label: 'High Humidity', emoji: '💦', category: 'environment', toggleColor: 'neutral' },
-  { id: 'sun', label: 'Lots of Sun', emoji: '☀️', category: 'environment', toggleColor: 'neutral' },
-  { id: 'altitude', label: 'Altitude Change', emoji: '⛰️', category: 'environment', toggleColor: 'neutral' },
-  { id: 'crowded', label: 'Crowded Place', emoji: '👥', category: 'environment', toggleColor: 'neutral' },
-  { id: 'air_quality', label: 'Bad Air Quality', emoji: '🌫️', category: 'environment', toggleColor: 'bad' },
-  { id: 'loud_noise', label: 'Loud Noise', emoji: '🔊', category: 'environment', toggleColor: 'bad' },
+  // Environment — all PREMIUM
+  { id: 'hot', label: 'Been in Heat', emoji: '🔥', category: 'environment', toggleColor: 'neutral', premium: true },
+  { id: 'temp_change', label: 'Temp Change', emoji: '🌡️', category: 'environment', toggleColor: 'neutral', premium: true },
+  { id: 'humidity', label: 'High Humidity', emoji: '💦', category: 'environment', toggleColor: 'neutral', premium: true },
+  { id: 'sun', label: 'Lots of Sun', emoji: '☀️', category: 'environment', toggleColor: 'neutral', premium: true },
+  { id: 'altitude', label: 'Altitude Change', emoji: '⛰️', category: 'environment', toggleColor: 'neutral', premium: true },
+  { id: 'crowded', label: 'Crowded Place', emoji: '👥', category: 'environment', toggleColor: 'neutral', premium: true },
+  { id: 'air_quality', label: 'Bad Air Quality', emoji: '🌫️', category: 'environment', toggleColor: 'bad', premium: true },
+  { id: 'loud_noise', label: 'Loud Noise', emoji: '🔊', category: 'environment', toggleColor: 'bad', premium: true },
 
-  // Health
-  { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', levels: ['Mild', 'Moderate', 'Severe'] },
-  { id: 'new_med', label: 'New Medication', emoji: '🆕', category: 'health', toggleColor: 'neutral' },
-  { id: 'compression', label: 'Compression', emoji: '🧦', category: 'health', toggleColor: 'good' },
-  { id: 'menstrual', label: 'On Period', emoji: '🩸', category: 'health', toggleColor: 'bad' },
-  { id: 'illness', label: 'Feeling Sick', emoji: '🤒', category: 'health', toggleColor: 'bad' },
-  { id: 'blood_pooling', label: 'Blood Pooling', emoji: '🦵', category: 'health', toggleColor: 'bad' },
-  { id: 'gi_issues', label: 'GI Issues', emoji: '🤢', category: 'health', toggleColor: 'bad' },
-  { id: 'allergic_reaction', label: 'Allergic Reaction', emoji: '🤧', category: 'health', toggleColor: 'bad' },
+  // Health — all PREMIUM
+  { id: 'pain', label: 'Pain Level', emoji: '🩹', category: 'health', levels: ['Mild', 'Moderate', 'Severe'], premium: true },
+  { id: 'new_med', label: 'New Medication', emoji: '🆕', category: 'health', toggleColor: 'neutral', premium: true },
+  { id: 'compression', label: 'Compression', emoji: '🧦', category: 'health', toggleColor: 'good', premium: true },
+  { id: 'menstrual', label: 'On Period', emoji: '🩸', category: 'health', toggleColor: 'bad', premium: true },
+  { id: 'illness', label: 'Feeling Sick', emoji: '🤒', category: 'health', toggleColor: 'bad', premium: true },
+  { id: 'blood_pooling', label: 'Blood Pooling', emoji: '🦵', category: 'health', toggleColor: 'bad', premium: true },
+  { id: 'gi_issues', label: 'GI Issues', emoji: '🤢', category: 'health', toggleColor: 'bad', premium: true },
+  { id: 'allergic_reaction', label: 'Allergic Reaction', emoji: '🤧', category: 'health', toggleColor: 'bad', premium: true },
 
-  // Mental
-  { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', levels: ['Mild', 'Moderate', 'Bad'] },
+  // Mental — stressed is FREE
   { id: 'stressed', label: 'Stressed', emoji: '😰', category: 'mental', levels: ['Mild', 'Moderate', 'High'] },
+  { id: 'brain_fog', label: 'Brain Fog', emoji: '🧠', category: 'mental', levels: ['Mild', 'Moderate', 'Bad'], premium: true },
 
-  // Lifestyle
-  { id: 'screen_time', label: 'Screen Time', emoji: '📱', category: 'lifestyle', toggleColor: 'neutral' },
-  { id: 'tight_clothing', label: 'Tight Clothing', emoji: '👔', category: 'lifestyle', toggleColor: 'bad' },
-  { id: 'social_event', label: 'Social Event', emoji: '🎉', category: 'lifestyle', toggleColor: 'neutral' },
-  { id: 'travel', label: 'Traveled', emoji: '✈️', category: 'lifestyle', toggleColor: 'neutral' },
-  { id: 'shopping', label: 'Shopping/Errands', emoji: '🛒', category: 'lifestyle', toggleColor: 'neutral' },
-  { id: 'cooking', label: 'Stood Cooking', emoji: '👨‍🍳', category: 'lifestyle', toggleColor: 'neutral' },
+  // Lifestyle — all PREMIUM
+  { id: 'screen_time', label: 'Screen Time', emoji: '📱', category: 'lifestyle', toggleColor: 'neutral', premium: true },
+  { id: 'tight_clothing', label: 'Tight Clothing', emoji: '👔', category: 'lifestyle', toggleColor: 'bad', premium: true },
+  { id: 'social_event', label: 'Social Event', emoji: '🎉', category: 'lifestyle', toggleColor: 'neutral', premium: true },
+  { id: 'travel', label: 'Traveled', emoji: '✈️', category: 'lifestyle', toggleColor: 'neutral', premium: true },
+  { id: 'shopping', label: 'Shopping/Errands', emoji: '🛒', category: 'lifestyle', toggleColor: 'neutral', premium: true },
+  { id: 'cooking', label: 'Stood Cooking', emoji: '👨‍🍳', category: 'lifestyle', toggleColor: 'neutral', premium: true },
 ];
 
 // ═══════════════════════════════════════════════════════════════

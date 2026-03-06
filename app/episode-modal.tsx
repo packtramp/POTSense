@@ -38,6 +38,7 @@ export default function EpisodeModal() {
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [disabledCategories, setDisabledCategories] = useState<string[]>([]);
   const [disabledCards, setDisabledCards] = useState<string[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
   const [linkedPatientUid, setLinkedPatientUid] = useState<string | null>(null);
   const [linkedPatientName, setLinkedPatientName] = useState<string | null>(null);
 
@@ -58,6 +59,9 @@ export default function EpisodeModal() {
         }
         if (data?.settings?.disabledCards) {
           setDisabledCards(data.settings.disabledCards);
+        }
+        if (data?.premiumStatus === 'premium') {
+          setIsPremium(true);
         }
       }).catch(() => {});
 
@@ -142,6 +146,7 @@ export default function EpisodeModal() {
         onClose={() => router.back()}
         disabledCategories={disabledCategories}
         disabledCards={disabledCards}
+        isPremium={isPremium}
       />
     );
   }

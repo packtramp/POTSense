@@ -84,7 +84,20 @@ export default function TrendsScreen() {
         .catch(() => {});
 
       // Fetch continuous hourly pressure from Open-Meteo (last 92 days)
+      // Try current location first, fall back to most recent episode's coords
       const pressurePromise = getCurrentLocation()
+        .then(async (coords) => {
+          if (coords) return coords;
+          // Fallback: use coords from most recent episode with weather data
+          const snap = await getDocs(query(episodesRef, orderBy('timestamp', 'desc')));
+          for (const d of snap.docs) {
+            const w = d.data().weather;
+            if (w?.latitude && w?.longitude) {
+              return { latitude: w.latitude, longitude: w.longitude };
+            }
+          }
+          return null;
+        })
         .then((coords) => {
           if (!coords) return;
           return fetchHistoricalPressure(coords.latitude, coords.longitude, 92);

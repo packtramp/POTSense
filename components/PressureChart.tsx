@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import Svg, { Path, Circle, Line, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Colors } from '@/constants/Colors';
@@ -242,6 +242,7 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
               const y = scaleY(d.pressure);
               const color = SEVERITY_COLORS[d.severity - 1] || SEVERITY_COLORS[2];
               const isSelected = d.id === selectedId;
+              const handler = () => setSelectedId(d.id === selectedId ? null : d.id);
               return (
                 <Circle
                   key={d.id}
@@ -250,7 +251,7 @@ export default function PressureChart({ hourlyData, episodes, width, height = 26
                   fill={color}
                   stroke={isSelected ? Colors.text : Colors.background}
                   strokeWidth={isSelected ? 2.5 : 1.5}
-                  onPress={() => setSelectedId(d.id === selectedId ? null : d.id)}
+                  {...(Platform.OS === 'web' ? { onClick: handler } : { onPress: handler })}
                 />
               );
             })}

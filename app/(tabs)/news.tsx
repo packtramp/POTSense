@@ -222,7 +222,9 @@ export default function NewsScreen() {
     try {
       const data = await fetchAllFeeds();
       setArticles(data);
+      const hasNews = data.some((a) => !a.isEvent);
       if (data.length === 0) setError(true);
+      else if (!hasNews && !isRefresh) setFilter('events'); // auto-show events if RSS feeds failed
     } catch { setError(true); }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
