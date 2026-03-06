@@ -16,9 +16,17 @@ export async function checkPremiumStatus(uid: string): Promise<boolean> {
   // User's own premium status
   if (data.premiumStatus === 'premium') return true;
 
-  // Partner? Check linked members
-  if (data.role === 'partner' && Array.isArray(data.linkedMembers) && data.linkedMembers.length > 0) {
-    for (const memberUid of data.linkedMembers) {
+  // Partner? Check linked patient
+  if (data.role === 'partner') {
+    // Support both linkedPatient (string) and linkedMembers (array)
+    const patientUids: string[] = [];
+    if (typeof data.linkedPatient === 'string' && data.linkedPatient) {
+      patientUids.push(data.linkedPatient);
+    }
+    if (Array.isArray(data.linkedMembers)) {
+      patientUids.push(...data.linkedMembers);
+    }
+    for (const memberUid of patientUids) {
       const memberSnap = await getDoc(doc(db, 'users', memberUid));
       if (memberSnap.exists() && memberSnap.data().premiumStatus === 'premium') {
         return true;
