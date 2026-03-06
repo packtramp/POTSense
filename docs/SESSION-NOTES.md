@@ -187,3 +187,49 @@ Phases 1-5 COMPLETE. Next: Phase 6 (Partner accounts + invite codes).
 
 ### Status
 Phases 1-6, 8-10 COMPLETE. Next: Phase 7 (Premium + RevenueCat) or Phase 11 (Notifications).
+
+## Session 5 — 2026-03-05/06
+
+### GitHub Issues Pipeline
+- Feedback form (`app/feedback.tsx`) submits create GitHub Issues automatically
+- Issues get `bug` or `enhancement` label + `user-feedback` label
+- API route (`api/feedback.ts`): Resend email now optional (won't crash without RESEND_API_KEY), from address changed to `onboarding@resend.dev` (free domain)
+
+### GitHub Milestones & Issue Organization
+- Created 4 milestones: v1.0 Release (#1), v0.x Polish (#2), Partner Accounts (#3), App Store Launch (#4)
+- All 8 open issues assigned to appropriate milestones
+- Issue #2 closed (time picker already done), #9 closed (duplicate), #10 closed (page chips wrap fix)
+- **ROADMAP.md created** — source of truth for project phases, linked to GitHub milestones/issues
+
+### Page Chips Wrap Fix
+- Feedback form page chips changed from horizontal scroll to `flexWrap` grid layout
+
+### Partner Premium Inheritance
+- New `lib/premium.ts` with `checkPremiumStatus()` — checks user's own premium status + linked partner/member premium
+- All 10 screens updated to use shared premium check
+- Partners inherit premium when their linked member has premium (and vice versa)
+
+### Home Screen Redesign
+- Tracker grid: max 5 items per row with `flexWrap` (was single row horizontal scroll)
+- Floating round FAB for "Log Episode" (replaced rectangular button)
+
+### Premium Gating (Partial)
+- JSON export fully gated behind premium
+- Tracker settings and trigger settings show upgrade CTAs for premium features
+- RevenueCat/Stripe integration still pending
+
+### Env Vars on Vercel
+- `GITHUB_TOKEN` — fine-grained PAT, Issues R/W, 3 repos (POTSense, ttrpg-character-sheets, dorsett-group-website), no expiration
+- `FIREBASE_PROJECT_ID`, `CRON_SECRET` — set
+- `RESEND_API_KEY` — NOT YET SET (Roby getting key from resend.com)
+
+### Commits
+4 commits: premium gating, home redesign, partner premium inheritance, feedback fixes + roadmap
+
+### Pending
+- RESEND_API_KEY needs to be added to Vercel
+- Firebase service account key needed for weekly email (GH #3)
+- Test partner premium inheritance on potsense.org
+
+### Status
+v0.33+. Phases 1-6, 8-10 DONE. Premium gating partial. Next: RevenueCat/Stripe, then notifications.

@@ -47,21 +47,9 @@ POTS episode tracker with auto barometric pressure capture, trigger checklist, p
 | `docs/SESSION-NOTES.md` | Session work log |
 
 ## Build Phases
-1. ~~Scaffold + 5-tab nav + Firebase Auth + basic episode logging (modal)~~ DONE
-2. ~~Weather + Location auto-capture (Open-Meteo)~~ DONE
-3. ~~Triggers (50+ items, 8 categories, branching, settings toggles)~~ DONE
-4. ~~Daily Trackers (tap-to-cycle on Home, Firestore dailyLogs)~~ DONE
-5. ~~News Feed (4 RSS sources — Dysautonomia Intl, Dysautonomia Project, PoTS UK, Cleveland Clinic)~~ DONE
-6. ~~Partner accounts + invite codes~~ DONE
-7. Premium + RevenueCat + Stripe + feature gating
-8. ~~History screen (tappable cards → episode detail modal with delete)~~ DONE
-9. ~~Trends + charts (5 swipeable cards: pressure/episodes, severity, triggers, time-of-day, frequency)~~ DONE
-10. ~~Doctor PDF report (date range selector, episode table, trigger analysis, pressure correlation)~~ DONE
-11. Notifications (push + Resend email + cron jobs)
-12. Onboarding + guided tour + polish
-13. App store submission (iOS + Android)
-
-**Test as web (Vercel) throughout. Wrap for mobile stores at Phase 13.**
+See **ROADMAP.md** for detailed phase tracking (linked to GitHub milestones/issues).
+Phases 1-6, 8-10 DONE. Premium gating partially done (JSON export, tracker/trigger settings have CTAs).
+Remaining: RevenueCat/Stripe integration, notifications, onboarding, app store submission.
 
 ## Firebase
 - Project: `potsense-app`
@@ -76,6 +64,7 @@ POTS episode tracker with auto barometric pressure capture, trigger checklist, p
 - `lib/weather.ts` — Open-Meteo client (pressure, temp, humidity, 3h trend, historical hourly)
 - `lib/admin.ts` — Admin email check
 - `lib/partners.ts` — Partner invite codes, link/unlink, role detection
+- `lib/premium.ts` — `checkPremiumStatus()` — checks user + linked partner/member premium
 - `constants/swipeCards.ts` — 50+ config-driven triggers, 8 categories, branching
 - `constants/Colors.ts` — Dark theme palette
 - `components/SwipeQuestionnaire.tsx` — Trigger UI with progress, branching, skip
@@ -84,6 +73,31 @@ POTS episode tracker with auto barometric pressure capture, trigger checklist, p
 - `app/pdf-export.tsx` — Doctor PDF report generation
 - `app/partner-settings.tsx` — Partner invite/link management
 - `app/questionnaire-settings.tsx` — Toggle categories/individual triggers
+- `app/feedback.tsx` — Feedback form → GitHub Issues (bug/enhancement labels)
+- `api/feedback.ts` — Creates GH issues + optional Resend email
+
+## Vercel Env Vars
+- `GITHUB_TOKEN` — fine-grained PAT, Issues R/W, 3 repos, no expiration
+- `FIREBASE_PROJECT_ID`, `CRON_SECRET` — set
+- `RESEND_API_KEY` — set (using free onboarding@resend.dev domain)
+
+## GitHub
+- Issues + Milestones active: v1.0 Release (#1), v0.x Polish (#2), Partner Accounts (#3), App Store Launch (#4)
+- Feedback form auto-creates issues with `bug`/`enhancement` + `user-feedback` labels
+
+## Testing Workflow (EVERY feature/bug)
+1. Show Roby manual test steps to verify the change
+2. Add tests to TESTS.md (manual + automated)
+3. Write automated test for the feature/bug
+4. Run full test suite before pushing
+
+## Issue Tracking Rule
+- **Quick fixes done this session** → just implement, no GitHub issue needed
+- **Deferred work / multi-session tasks** → create GitHub issue + add to ROADMAP.md
+- **User-submitted feedback** → auto-creates issues via in-app form
 
 ## Current Status
-**Phase:** Phases 1-10 COMPLETE (except 7: Premium/RevenueCat). Next: Phase 7 (Premium + RevenueCat) or Phase 11 (Notifications).
+**Version:** v0.33+
+**Phase:** Phases 1-6, 8-10 DONE. Premium gating partial (JSON export gated, upgrade CTAs in tracker/trigger settings). Home redesigned (tracker grid + floating FAB).
+**Pending:** RESEND_API_KEY on Vercel, Firebase service account for weekly email (GH #3), test partner premium inheritance on potsense.org.
+**Next:** RevenueCat/Stripe integration, then notifications.
