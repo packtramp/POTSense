@@ -254,156 +254,158 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
-    >
-      {/* Beta Banner */}
-      {!betaBannerDismissed && (
-        <View style={styles.betaBanner}>
-          <View style={styles.betaBannerContent}>
-            <Text style={styles.betaBannerBadge}>BETA</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.betaBannerTitle}>Early Access — Free During Beta</Text>
-              <Text style={styles.betaBannerText}>
-                All premium features are free during beta! Once we officially launch, premium features will require a subscription.
-              </Text>
+    <View style={styles.wrapper}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
+      >
+        {/* Beta Banner */}
+        {!betaBannerDismissed && (
+          <View style={styles.betaBanner}>
+            <View style={styles.betaBannerContent}>
+              <Text style={styles.betaBannerBadge}>BETA</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.betaBannerTitle}>Early Access — Free During Beta</Text>
+                <Text style={styles.betaBannerText}>
+                  All premium features are free during beta! Once we officially launch, premium features will require a subscription.
+                </Text>
+              </View>
+              <Pressable onPress={dismissBetaBanner} hitSlop={12}>
+                <Ionicons name="close" size={18} color={Colors.textMuted} />
+              </Pressable>
             </View>
-            <Pressable onPress={dismissBetaBanner} hitSlop={12}>
-              <Ionicons name="close" size={18} color={Colors.textMuted} />
-            </Pressable>
+          </View>
+        )}
+
+        {/* Weather Card */}
+        <View style={styles.weatherCard}>
+          <Text style={styles.weatherTitle}>Current Conditions</Text>
+          {weatherLoading ? (
+            <Text style={styles.weatherPressure}>Loading...</Text>
+          ) : weather ? (
+            <>
+              <Text style={styles.weatherPressure}>
+                {weather.surfacePressureInHg} inHg {trendArrow(weather.pressureTrend)}
+              </Text>
+              <Text style={styles.weatherDetail}>
+                {weather.temperatureF}°F   {weather.humidity}% humidity
+              </Text>
+              <Text style={styles.weatherDetail}>
+                {weatherDescription(weather.weatherCode)}   Wind: {Math.round(weather.windSpeed)} km/h
+              </Text>
+              {weather.pressureTrend === 'falling' && weather.pressureChange3h < -3 && (
+                <Text style={styles.weatherWarning}>
+                  Pressure falling fast ({weather.pressureChange3h} hPa in 3h)
+                </Text>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.weatherPressure}>-- inHg</Text>
+              <Text style={styles.weatherNote}>Allow location access for weather data</Text>
+            </>
+          )}
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{todayCount}</Text>
+            <Text style={styles.statLabel}>Today</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{weekCount}</Text>
+            <Text style={styles.statLabel}>This Week</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{lastEpisode}</Text>
+            <Text style={styles.statLabel}>Last Episode</Text>
           </View>
         </View>
-      )}
 
-      {/* Weather Card */}
-      <View style={styles.weatherCard}>
-        <Text style={styles.weatherTitle}>🌡️ Current Conditions</Text>
-        {weatherLoading ? (
-          <Text style={styles.weatherPressure}>Loading...</Text>
-        ) : weather ? (
-          <>
-            <Text style={styles.weatherPressure}>
-              {weather.surfacePressureInHg} inHg {trendArrow(weather.pressureTrend)}
-            </Text>
-            <Text style={styles.weatherDetail}>
-              {weather.temperatureF}°F   {weather.humidity}% humidity
-            </Text>
-            <Text style={styles.weatherDetail}>
-              {weatherDescription(weather.weatherCode)}   Wind: {Math.round(weather.windSpeed)} km/h
-            </Text>
-            {weather.pressureTrend === 'falling' && weather.pressureChange3h < -3 && (
-              <Text style={styles.weatherWarning}>
-                ⚠️ Pressure falling fast ({weather.pressureChange3h} hPa in 3h)
-              </Text>
-            )}
-          </>
-        ) : (
-          <>
-            <Text style={styles.weatherPressure}>-- inHg</Text>
-            <Text style={styles.weatherNote}>Allow location access for weather data</Text>
-          </>
-        )}
-      </View>
+        {/* Daily Trackers */}
+        <Text style={styles.sectionTitle}>Today's Tracking</Text>
+        <View style={styles.trackerGrid}>
+          {activeTrackers.map((t) => {
+            const val = trackerValues[t.key] || '--';
+            const color = getTrackerColor(val);
+            return (
+              <Pressable
+                key={t.key}
+                style={[styles.trackerItem, val !== '--' && { borderColor: color }]}
+                onPress={() => cycleTracker(t)}
+              >
+                <Text style={styles.trackerEmoji}>{t.emoji}</Text>
+                <Text style={styles.trackerLabel}>{t.label}</Text>
+                <Text style={[styles.trackerValue, { color }]}>{val}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      {/* Share / Community */}
-      <Text style={styles.shareLabel}>Share POTSense</Text>
-      <View style={styles.socialRow}>
-        {getAllShareLinks(refCode)
-          .filter((s) => PRIMARY_SHARE_KEYS.includes(s.key))
-          .map((s) => (
-            <Pressable
-              key={s.key}
-              style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
-              onPress={s.onPress}
-            >
-              <Ionicons name={s.icon} size={22} color={s.color} />
-            </Pressable>
-          ))}
-        <Pressable
-          style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
-          onPress={() => setShareOpen(true)}
-        >
-          <Ionicons name="share-social-outline" size={22} color={Colors.textSecondary} />
-        </Pressable>
-      </View>
-
-      {/* Share Modal */}
-      <Modal visible={shareOpen} transparent animationType="fade" onRequestClose={() => setShareOpen(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShareOpen(false)}>
-          <View style={styles.shareSheet}>
-            <Text style={styles.shareSheetTitle}>Share via</Text>
-            {getAllShareLinks(refCode).map((s) => (
+        {/* Share / Community */}
+        <Text style={styles.shareLabel}>Share POTSense</Text>
+        <View style={styles.socialRow}>
+          {getAllShareLinks(refCode)
+            .filter((s) => PRIMARY_SHARE_KEYS.includes(s.key))
+            .map((s) => (
               <Pressable
                 key={s.key}
-                style={({ pressed }) => [styles.shareSheetRow, pressed && { backgroundColor: Colors.border }]}
-                onPress={() => { setShareOpen(false); s.onPress(); }}
+                style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
+                onPress={s.onPress}
               >
                 <Ionicons name={s.icon} size={22} color={s.color} />
-                <Text style={styles.shareSheetLabel}>{s.label}</Text>
               </Pressable>
             ))}
-            <Pressable style={styles.shareSheetCancel} onPress={() => setShareOpen(false)}>
-              <Text style={styles.shareSheetCancelText}>Cancel</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+          <Pressable
+            style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => setShareOpen(true)}
+          >
+            <Ionicons name="share-social-outline" size={22} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
 
-      {/* Daily Trackers */}
-      <Text style={styles.sectionTitle}>Today's Tracking</Text>
-      <View style={styles.trackerRow}>
-        {activeTrackers.map((t) => {
-          const val = trackerValues[t.key] || '--';
-          const color = getTrackerColor(val);
-          return (
-            <Pressable
-              key={t.key}
-              style={[styles.trackerItem, val !== '--' && { borderColor: color }]}
-              onPress={() => cycleTracker(t)}
-            >
-              <Text style={styles.trackerEmoji}>{t.emoji}</Text>
-              <Text style={styles.trackerLabel}>{t.label}</Text>
-              <Text style={[styles.trackerValue, { color }]}>{val}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+        {/* Share Modal */}
+        <Modal visible={shareOpen} transparent animationType="fade" onRequestClose={() => setShareOpen(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setShareOpen(false)}>
+            <View style={styles.shareSheet}>
+              <Text style={styles.shareSheetTitle}>Share via</Text>
+              {getAllShareLinks(refCode).map((s) => (
+                <Pressable
+                  key={s.key}
+                  style={({ pressed }) => [styles.shareSheetRow, pressed && { backgroundColor: Colors.border }]}
+                  onPress={() => { setShareOpen(false); s.onPress(); }}
+                >
+                  <Ionicons name={s.icon} size={22} color={s.color} />
+                  <Text style={styles.shareSheetLabel}>{s.label}</Text>
+                </Pressable>
+              ))}
+              <Pressable style={styles.shareSheetCancel} onPress={() => setShareOpen(false)}>
+                <Text style={styles.shareSheetCancelText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
+      </ScrollView>
 
-      {/* LOG EPISODE Button */}
+      {/* Floating Log Episode Button */}
       <Pressable
-        style={({ pressed }) => [styles.logButton, pressed && styles.logButtonPressed]}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => router.push('/episode-modal')}
       >
-        <Ionicons name="add-circle" size={28} color={Colors.text} />
-        <Text style={styles.logButtonText}>LOG EPISODE</Text>
+        <Ionicons name="add" size={32} color="#fff" />
       </Pressable>
-
-      {/* Quick Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{todayCount}</Text>
-          <Text style={styles.statLabel}>Today</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{weekCount}</Text>
-          <Text style={styles.statLabel}>This Week</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{lastEpisode}</Text>
-          <Text style={styles.statLabel}>Last Episode</Text>
-        </View>
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: 16, paddingBottom: 80 },
+  wrapper: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
+  content: { padding: 16, paddingBottom: 100 },
 
   weatherCard: {
     backgroundColor: Colors.card,
@@ -438,33 +440,44 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: { color: Colors.text, fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  trackerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  trackerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 24,
+  },
   trackerItem: {
     alignItems: 'center',
     backgroundColor: Colors.card,
     borderRadius: 10,
     padding: 10,
-    flex: 1,
-    marginHorizontal: 3,
+    width: '18.4%',
+    minWidth: 62,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  trackerEmoji: { fontSize: 24, marginBottom: 4 },
-  trackerLabel: { color: Colors.textSecondary, fontSize: 11 },
-  trackerValue: { color: Colors.textMuted, fontSize: 12, marginTop: 2, fontWeight: '600' },
+  trackerEmoji: { fontSize: 22, marginBottom: 3 },
+  trackerLabel: { color: Colors.textSecondary, fontSize: 10 },
+  trackerValue: { color: Colors.textMuted, fontSize: 11, marginTop: 2, fontWeight: '600' },
 
-  logButton: {
+  fab: {
+    position: 'absolute',
+    bottom: 16,
+    alignSelf: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: Colors.primary,
-    borderRadius: 16,
-    paddingVertical: 20,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 10,
   },
-  logButtonPressed: { opacity: 0.85 },
-  logButtonText: { color: Colors.text, fontSize: 20, fontWeight: '700', letterSpacing: 1 },
+  fabPressed: { opacity: 0.85, transform: [{ scale: 0.95 }] },
 
   statsRow: {
     flexDirection: 'row',
