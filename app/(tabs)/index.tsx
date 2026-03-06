@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getWeatherForCurrentLocation, WeatherData, trendArrow, weatherDescription } from '@/lib/weather';
 import { getUserReferralCode } from '@/lib/referrals';
 import { checkPremiumStatus } from '@/lib/premium';
+import { getLinkedPatient } from '@/lib/partners';
 import { Alert, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -127,13 +128,22 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [disabledTrackers, setDisabledTrackers] = useState<string[]>([]);
   const [isPremium, setIsPremium] = useState(false);
+  const [dataUid, setDataUid] = useState<string | null>(null); // patient UID (self or linked patient for partners)
   const [betaBannerDismissed, setBetaBannerDismissed] = useState(true); // default hidden until loaded
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
     const user = getCurrentUser();
     if (!user) return;
 
-    const episodesRef = collection(db, 'patients', user.uid, 'episodes');
+    // Determine data UID — partners view their linked patient's data
+    let targetUid = user.uid;
+    try {
+      const linked = await getLinkedPatient(user.uid);
+      if (linked) targetUid = linked.patientUid;
+    } catch {}
+    setDataUid(targetUid);
+
+    const episodesRef = collection(db, 'patients', targetUid, 'episodes');
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -170,7 +180,7 @@ export default function HomeScreen() {
       .catch(() => {});
 
     const todayKey = getTodayKey();
-    getDoc(doc(db, 'patients', user.uid, 'dailyLogs', todayKey))
+    getDoc(doc(db, 'patients', targetUid, 'dailyLogs', todayKey))
       .then((snap) => {
         if (snap.exists()) {
           setTrackerValues(snap.data().trackers || {});
@@ -180,8 +190,8 @@ export default function HomeScreen() {
       })
       .catch(() => {});
 
-    // Load user settings (disabled trackers)
-    getDoc(doc(db, 'users', user.uid))
+    // Load patient's settings (disabled trackers) — use targetUid so partners inherit patient's settings
+    getDoc(doc(db, 'users', targetUid))
       .then((snap) => {
         if (snap.exists()) {
           const data = snap.data();
@@ -238,12 +248,12 @@ export default function HomeScreen() {
     const newValues = { ...trackerValues, [tracker.key]: nextVal };
     setTrackerValues(newValues);
 
-    // Save to Firestore
-    const user = getCurrentUser();
-    if (!user) return;
+    // Save to Firestore (use dataUid so partners save to patient's dailyLogs)
+    const saveUid = dataUid || getCurrentUser()?.uid;
+    if (!saveUid) return;
     const todayKey = getTodayKey();
     setDoc(
-      doc(db, 'patients', user.uid, 'dailyLogs', todayKey),
+      doc(db, 'patients', saveUid, 'dailyLogs', todayKey),
       { trackers: newValues, updatedAt: new Date().toISOString() },
       { merge: true }
     ).catch(() => {});
@@ -454,11 +464,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: 10,
     padding: 10,
-    flexBasis: '18%',
-    flexGrow: 0,
+    flexBasis: '17%',
+    flexGrow: 1,
     flexShrink: 0,
-    minWidth: 60,
-    maxWidth: 80,
+    minWidth: 58,
+    maxWidth: 85,
     borderWidth: 1,
     borderColor: Colors.border,
   },
