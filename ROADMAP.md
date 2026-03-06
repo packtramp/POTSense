@@ -14,7 +14,7 @@ Closed: #2 (time picker), #9 (duplicate), #10 (chip wrap fix)
 2. [ ] #4 — Integrate RevenueCat for subscription management
 3. [ ] #1 — Partner accounts (invite flow, link/unlink, dashboard, notifications)
 4. [ ] #5 — Background pressure monitoring + push notifications
-5. [ ] #3 — Firebase service account + cron for weekly email summary
+5. [ ] #3 — Firebase service account + cron for email summary (monthly free, weekly premium)
 6. [ ] #7 — Pressure-change correlation stat on trends dashboard
 7. [ ] #8 — Onboarding flow (2-3 screens)
 8. [ ] #11 — App icon + splash screen
