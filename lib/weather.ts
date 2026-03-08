@@ -125,6 +125,95 @@ export function trendArrow(trend: WeatherData['pressureTrend']): string {
   return trend === 'falling' ? '↓' : trend === 'rising' ? '↑' : '→';
 }
 
+// Fetch full weather data for a specific historical date/time (up to 92 days back)
+export async function fetchWeatherForDate(
+  lat: number,
+  lon: number,
+  targetDate: Date,
+): Promise<WeatherData | null> {
+  try {
+    const now = new Date();
+    const diffMs = now.getTime() - targetDate.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0 || diffDays > 92) return null; // Future or too far back
+
+    // If within the last hour, just fetch current weather
+    if (diffMs < 60 * 60 * 1000) {
+      return fetchWeather(lat, lon);
+    }
+
+    // Fetch enough hourly data to cover the target time + 25h before it for pressure changes
+    const pastDays = Math.min(diffDays + 2, 92);
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=surface_pressure,temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&past_days=${pastDays}&forecast_days=1&timezone=auto`;
+
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const times: string[] = data.hourly?.time || [];
+    const pressures: (number | null)[] = data.hourly?.surface_pressure || [];
+    const temps: (number | null)[] = data.hourly?.temperature_2m || [];
+    const humidities: (number | null)[] = data.hourly?.relative_humidity_2m || [];
+    const winds: (number | null)[] = data.hourly?.wind_speed_10m || [];
+    const codes: (number | null)[] = data.hourly?.weather_code || [];
+
+    // Find the closest hourly index to the target date
+    const targetMs = targetDate.getTime();
+    let closestIdx = 0;
+    let closestDiff = Infinity;
+    for (let i = 0; i < times.length; i++) {
+      const diff = Math.abs(new Date(times[i]).getTime() - targetMs);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestIdx = i;
+      }
+    }
+
+    const pressure = pressures[closestIdx];
+    if (pressure == null) return null;
+
+    const getBack = (hoursBack: number) => {
+      const idx = closestIdx - hoursBack;
+      return idx >= 0 && pressures[idx] != null ? pressures[idx]! : null;
+    };
+
+    const change = (hoursBack: number) => {
+      const past = getBack(hoursBack);
+      return past != null ? Math.round((pressure - past) * 100) / 100 : 0;
+    };
+
+    const pressureChange1h = change(1);
+    const pressureChange3h = change(3);
+    const pressureChange6h = change(6);
+    const pressureChange24h = change(24);
+    const pressureRatePerHour = pressureChange3h !== 0 ? Math.round((pressureChange3h / 3) * 100) / 100 : 0;
+    const pressureTrend: WeatherData['pressureTrend'] =
+      pressureChange3h < -1 ? 'falling' : pressureChange3h > 1 ? 'rising' : 'steady';
+
+    return {
+      latitude: lat,
+      longitude: lon,
+      surfacePressure: pressure,
+      surfacePressureInHg: Math.round(pressure * HPA_TO_INHG * 100) / 100,
+      temperature: temps[closestIdx] ?? 0,
+      temperatureF: C_TO_F(temps[closestIdx] ?? 0),
+      humidity: humidities[closestIdx] ?? 0,
+      windSpeed: winds[closestIdx] ?? 0,
+      weatherCode: codes[closestIdx] ?? 0,
+      pressureChange1h,
+      pressureChange3h,
+      pressureChange6h,
+      pressureChange24h,
+      pressureRatePerHour,
+      pressureTrend,
+      fetchedAt: new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Historical hourly pressure for trends chart
 export type HourlyPressure = {
   timestamp: Date;

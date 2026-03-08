@@ -225,6 +225,30 @@ export default function EpisodeDetail() {
           </View>
         )}
 
+        {/* Edit Button */}
+        <Pressable
+          style={styles.editButton}
+          onPress={() => {
+            if (!episode || !id) return;
+            const date = episode.timestamp?.toDate?.() ?? new Date(episode.localTime);
+            const editPayload = {
+              severity: episode.severity,
+              symptoms: episode.symptoms,
+              notes: episode.notes || '',
+              timestamp: date.toISOString(),
+              localTime: episode.localTime,
+              weather: episode.weather,
+            };
+            router.push({
+              pathname: '/episode-modal',
+              params: { editId: id, editData: JSON.stringify(editPayload) },
+            });
+          }}
+        >
+          <Ionicons name="create-outline" size={18} color={Colors.primary} />
+          <Text style={styles.editButtonText}>Edit Episode</Text>
+        </Pressable>
+
         {/* Delete Button */}
         <Pressable
           style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
@@ -319,6 +343,21 @@ const styles = StyleSheet.create({
   },
   questionKey: { color: Colors.textSecondary, fontSize: 13, flex: 1 },
   questionValue: { color: Colors.text, fontSize: 13, fontWeight: '600' },
+
+  // Edit
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(108,142,191,0.1)',
+  },
+  editButtonText: { color: Colors.primary, fontSize: 15, fontWeight: '600' },
 
   // Delete
   deleteButton: {
