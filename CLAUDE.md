@@ -81,6 +81,15 @@ Remaining: RevenueCat/Stripe integration, notifications, onboarding, app store s
 - `FIREBASE_PROJECT_ID`, `CRON_SECRET` — set
 - `RESEND_API_KEY` — set (using free onboarding@resend.dev domain)
 
+## Email Authentication (DMARC/SPF)
+- Domain: potsense.org (NOT verified in Resend — free plan limit, counselinghomework.com uses the slot)
+- Currently sends from: `onboarding@resend.dev` (feedback) + `summary@potsense.org` (weekly summaries — may not deliver well without domain verification)
+- SPF: Added 2026-03-24 (`include:amazonses.com`)
+- DMARC: Added 2026-03-24 (`p=none` with reporting to dmarc@potsense.org)
+- DKIM: Requires Resend domain verification (upgrade to paid plan or swap from counselinghomework.com)
+- Action needed: Verify potsense.org in Resend when plan allows, to enable proper DKIM signing for weekly summary emails
+- Resend CLI: Available (`npm i -g resend`) for testing
+
 ## GitHub
 - Issues + Milestones active: v1.0 Release (#1), v0.x Polish (#2), Partner Accounts (#3), App Store Launch (#4)
 - Feedback form auto-creates issues with `bug`/`enhancement` + `user-feedback` labels
